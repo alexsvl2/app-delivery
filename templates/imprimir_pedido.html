@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Pedido #{{ pedido.id }}</title>
+    <style>
+        /* A fonte e o tamanho podem precisar de ajuste fino */
+        body {
+            font-family: 'Courier New', Courier, monospace;
+            width: 78mm; /* Largura aproximada da bobina de 80mm */
+            font-size: 12pt;
+            color: #000;
+            margin: 0;
+            padding: 1mm;
+        }
+        .container {
+            width: 100%;
+        }
+        h1, h2, p, .item {
+            margin: 2mm 0;
+            text-align: center;
+        }
+        h1 { font-size: 16pt; }
+        h2 { font-size: 14pt; border-bottom: 1px dashed #000; padding-bottom: 2mm; }
+        p { font-size: 10pt; }
+        .info { text-align: left; font-size: 11pt; }
+        .total { font-size: 14pt; font-weight: bold; }
+        hr { border: none; border-top: 1px dashed #000; }
+    </style>
+</head>
+<body onload="window.print();">
+    <div class="container">
+        <h1>Seu Estabelecimento</h1>
+        <p>Rua Exemplo, 123 - Tel: (99) 99999-9999</p>
+        <hr>
+        
+        <h2>{{ pedido.tipo_pedido.upper() }} - Pedido #{{ pedido.id }}</h2>
+        <p>{{ pedido.data_pedido.strftime('%d/%m/%Y %H:%M:%S') }}</p>
+        
+        <div class="info">
+            <strong>Cliente:</strong> {{ pedido.nome_cliente }} <br>
+            {% if pedido.tipo_pedido == 'Delivery' %}
+                <strong>Endereço:</strong> {{ pedido.endereco }} <br>
+                <strong>Bairro:</strong> {{ pedido.bairro }} <br>
+            {% endif %}
+        </div>
+        <hr>
+
+        <h3>Detalhes do Pedido</h3>
+        <div class="info">
+            {{ pedido.descricao|replace('\n', '<br>')|safe }}
+        </div>
+        <hr>
+        
+        <div class="info">
+            <strong>Quantidade:</strong> {{ pedido.quantidade }} <br>
+            <strong>Valor Itens:</strong> R$ {{ "%.2f"|format(pedido.valor * pedido.quantidade) }} <br>
+            {% if pedido.tipo_pedido == 'Delivery' %}
+                <strong>Taxa Entrega:</strong> R$ {{ "%.2f"|format(pedido.valor_entrega) }} <br>
+            {% endif %}
+        </div>
+        
+        <hr>
+        <div class="total">
+            TOTAL: R$ {{ "%.2f"|format(pedido.valor_total) }}
+        </div>
+        <hr>
+        <p>Obrigado pela preferência!</p>
+
+    </div>
+</body>
+</html>

@@ -1,4 +1,4 @@
-# app.py (VERSÃO FINAL CORRIGIDA)
+# app.py (VERSÃO CORRIGIDA E FINAL)
 
 import os
 from flask import Flask, render_template, request, redirect, url_for, flash
@@ -6,13 +6,12 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from werkzeug.security import check_password_hash
 from dotenv import load_dotenv
-from datetime import date # Importa o 'date' para filtrar por dia
-from sqlalchemy import cast, Date # Importa o 'cast' e 'Date' para a consulta
+from datetime import date
+from sqlalchemy import cast, Date
+from decimal import Decimal
 
-# Carregar variáveis de ambiente
 load_dotenv()
 
-# Configuração do App
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL')
@@ -26,14 +25,12 @@ login_manager.login_message = "Por favor, faça o login para acessar esta págin
 login_manager.login_message_category = "info"
 
 
-# --- Modelos do Banco de Dados ---
-
+# --- MODELOS FINAIS ---
 class Usuario(UserMixin, db.Model):
     __tablename__ = 'delivery_usuarios'
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
     password_hash = db.Column(db.String(255), nullable=False)
-
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
 
@@ -43,41 +40,40 @@ class Pedido(db.Model):
     nome_cliente = db.Column(db.String(100), nullable=False)
     endereco = db.Column(db.Text)
     bairro = db.Column(db.String(100))
-    descricao = db.Column(db.Text, nullable=False)
-    quantidade = db.Column(db.Integer, nullable=False)
-    valor = db.Column(db.Numeric(10, 2), nullable=False)
-    valor_entrega = db.Column(db.Numeric(10, 2))
+    valor_entrega = db.Column(db.Numeric(10, 2), default=0.0)
     valor_total = db.Column(db.Numeric(10, 2), nullable=False)
     data_pedido = db.Column(db.DateTime, default=db.func.now())
     tipo_pedido = db.Column(db.String(20), nullable=False)
+    itens = db.relationship('ItemPedido', backref='pedido', lazy=True, cascade="all, delete-orphan")
 
+class ItemPedido(db.Model):
+    __tablename__ = 'delivery_itens_pedido'
+    id = db.Column(db.Integer, primary_key=True)
+    descricao = db.Column(db.String(200), nullable=False)
+    quantidade = db.Column(db.Integer, nullable=False)
+    valor_unitario = db.Column(db.Numeric(10, 2), nullable=False)
+    pedido_id = db.Column(db.Integer, db.ForeignKey('delivery_pedidos.id'), nullable=False)
 
-# --- Configuração do Login ---
 
 @login_manager.user_loader
 def load_user(user_id):
     return db.session.get(Usuario, int(user_id))
 
 
-# --- Rotas da Aplicação ---
-
+# --- Rotas ---
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if current_user.is_authenticated:
         return redirect(url_for('dashboard'))
-    
-    # CORREÇÃO DE INDENTAÇÃO APLICADA AQUI
     if request.method == 'POST':
         username = request.form.get('username')
         password = request.form.get('password')
         user = Usuario.query.filter_by(username=username).first()
-        
         if user and user.check_password(password):
             login_user(user)
             return redirect(url_for('dashboard'))
         else:
             flash('Usuário ou senha inválidos.', 'danger')
-            
     return render_template('login.html')
 
 @app.route('/logout')
@@ -87,46 +83,57 @@ def logout():
     return redirect(url_for('login'))
 
 @app.route('/')
-@app.route('/dashboard', methods=['GET', 'POST'])
+@app.route('/dashboard')
 @login_required
 def dashboard():
-    if request.method == 'POST':
-        try:
-            tipo_pedido = request.form['tipo_pedido']
-            valor_str = request.form['valor'].replace(',', '.')
-            valor = float(valor_str)
-            quantidade = int(request.form['quantidade'])
-            
-            valor_entrega_str = request.form.get('valor_entrega', '0.0').replace(',', '.')
-            valor_entrega = float(valor_entrega_str) if tipo_pedido == 'Delivery' else 0.0
-            valor_total = (valor * quantidade) + valor_entrega
-
-            novo_pedido = Pedido(
-                nome_cliente=request.form['nome_cliente'],
-                endereco=request.form.get('endereco', ''),
-                bairro=request.form.get('bairro', ''),
-                descricao=request.form['descricao'],
-                quantidade=quantidade,
-                valor=valor,
-                valor_entrega=valor_entrega,
-                valor_total=valor_total,
-                tipo_pedido=tipo_pedido
-            )
-            
-            db.session.add(novo_pedido)
-            db.session.commit()
-            
-            flash('Pedido cadastrado com sucesso!', 'success')
-            return redirect(url_for('dashboard'))
-
-        except Exception as e:
-            db.session.rollback()
-            flash(f'Erro ao cadastrar o pedido: {e}', 'danger')
-
     hoje = date.today()
     pedidos_do_dia = Pedido.query.filter(cast(Pedido.data_pedido, Date) == hoje).order_by(Pedido.data_pedido.desc()).all()
-    
     return render_template('dashboard.html', pedidos=pedidos_do_dia)
+
+@app.route('/novo_pedido', methods=['POST'])
+@login_required
+def novo_pedido():
+    try:
+        novo_pedido = Pedido(
+            nome_cliente=request.form['nome_cliente'],
+            tipo_pedido=request.form['tipo_pedido'],
+            endereco=request.form.get('endereco', ''),
+            bairro=request.form.get('bairro', '')
+        )
+        
+        descricoes = request.form.getlist('item_descricao[]')
+        quantidades = request.form.getlist('item_quantidade[]')
+        valores_unitarios = request.form.getlist('item_valor_unitario[]')
+        
+        valor_total_itens = Decimal('0.0')
+
+        for i in range(len(descricoes)):
+            if descricoes[i] and quantidades[i] and valores_unitarios[i]:
+                quantidade = int(quantidades[i])
+                valor_unitario = Decimal(valores_unitarios[i].replace(',', '.'))
+                
+                item = ItemPedido(
+                    descricao=descricoes[i],
+                    quantidade=quantidade,
+                    valor_unitario=valor_unitario
+                )
+                novo_pedido.itens.append(item)
+                valor_total_itens += quantidade * valor_unitario
+        
+        valor_entrega_str = request.form.get('valor_entrega', '0.0').replace(',', '.')
+        valor_entrega = Decimal(valor_entrega_str) if novo_pedido.tipo_pedido == 'Delivery' else Decimal('0.0')
+        
+        novo_pedido.valor_entrega = valor_entrega
+        novo_pedido.valor_total = valor_total_itens + valor_entrega
+        
+        db.session.add(novo_pedido)
+        db.session.commit()
+        flash('Pedido cadastrado com sucesso!', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Erro ao cadastrar o pedido: {e}', 'danger')
+        
+    return redirect(url_for('dashboard'))
 
 @app.route('/historico')
 @login_required
@@ -144,25 +151,39 @@ def editar_pedido(pedido_id):
 
     if request.method == 'POST':
         try:
+            # Limpa itens antigos para adicionar os novos. É mais simples do que comparar.
+            for item in pedido.itens:
+                db.session.delete(item)
+            
             pedido.nome_cliente = request.form['nome_cliente']
             pedido.tipo_pedido = request.form['tipo_pedido']
             pedido.endereco = request.form.get('endereco', '')
             pedido.bairro = request.form.get('bairro', '')
-            pedido.descricao = request.form['descricao']
             
-            valor_str = request.form['valor'].replace(',', '.')
-            pedido.valor = float(valor_str)
-            pedido.quantidade = int(request.form['quantidade'])
+            descricoes = request.form.getlist('item_descricao[]')
+            quantidades = request.form.getlist('item_quantidade[]')
+            valores_unitarios = request.form.getlist('item_valor_unitario[]')
             
+            valor_total_itens = Decimal('0.0')
+            for i in range(len(descricoes)):
+                if descricoes[i] and quantidades[i] and valores_unitarios[i]:
+                    item = ItemPedido(
+                        descricao=descricoes[i],
+                        quantidade=int(quantidades[i]),
+                        valor_unitario=Decimal(valores_unitarios[i].replace(',', '.'))
+                    )
+                    pedido.itens.append(item)
+                    valor_total_itens += item.quantidade * item.valor_unitario
+
             valor_entrega_str = request.form.get('valor_entrega', '0.0').replace(',', '.')
-            pedido.valor_entrega = float(valor_entrega_str) if pedido.tipo_pedido == 'Delivery' else 0.0
-            
-            pedido.valor_total = (pedido.valor * pedido.quantidade) + pedido.valor_entrega
+            valor_entrega = Decimal(valor_entrega_str) if pedido.tipo_pedido == 'Delivery' else Decimal('0.0')
+
+            pedido.valor_entrega = valor_entrega
+            pedido.valor_total = valor_total_itens + valor_entrega
             
             db.session.commit()
             flash('Pedido atualizado com sucesso!', 'success')
             return redirect(url_for('dashboard'))
-
         except Exception as e:
             db.session.rollback()
             flash(f'Erro ao atualizar o pedido: {e}', 'danger')

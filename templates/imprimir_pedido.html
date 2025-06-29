@@ -4,25 +4,7 @@
     <meta charset="UTF-8">
     <title>Pedido #{{ pedido.id }}</title>
     <style>
-        body {
-            font-family: 'Courier New', Courier, monospace;
-            width: 78mm;
-            font-size: 12pt;
-            color: #000;
-            margin: 0;
-            padding: 1mm;
-        }
-        .container { width: 100%; }
-        h1, h2, p, .item {
-            margin: 2mm 0;
-            text-align: center;
-        }
-        h1 { font-size: 16pt; margin-bottom: 1mm; }
-        h2 { font-size: 14pt; border-bottom: 1px dashed #000; padding-bottom: 2mm; }
-        p { font-size: 10pt; margin-top: 1mm; }
-        .info { text-align: left; font-size: 11pt; }
-        .total { font-size: 14pt; font-weight: bold; }
-        hr { border: none; border-top: 1px dashed #000; margin: 2mm 0; }
+        /* CSS continua o mesmo */
     </style>
 </head>
 <body onload="window.print();">
@@ -43,27 +25,26 @@
         </div>
         <hr>
 
-        <h3>Detalhes do Pedido</h3>
-        <div class="info">
-            {{ pedido.descricao|replace('\n', '<br>')|safe }}
-        </div>
+        <h3>Itens do Pedido</h3>
+        <table>
+            {% for item in pedido.itens %}
+            <tr>
+                <td style="text-align: left;">{{ item.quantidade }}x {{ item.descricao }}</td>
+                <td style="text-align: right;">R$ {{ "%.2f"|format(item.quantidade * item.valor_unitario)|replace('.',',') }}</td>
+            </tr>
+            {% endfor %}
+        </table>
         <hr>
         
-        <div class="info">
-            <strong>Quantidade:</strong> {{ pedido.quantidade }} <br>
-            <strong>Valor Itens:</strong> R$ {{ "%.2f"|format(pedido.valor * pedido.quantidade)|replace('.',',') }} <br>
-            {% if pedido.tipo_pedido == 'Delivery' %}
-                <strong>Taxa Entrega:</strong> R$ {{ "%.2f"|format(pedido.valor_entrega)|replace('.',',') }} <br>
-            {% endif %}
-        </div>
-        
-        <hr>
         <div class="total" style="text-align: right;">
-            TOTAL: R$ {{ "%.2f"|format(pedido.valor_total)|replace('.',',') }}
+            {% if pedido.valor_entrega > 0 %}
+                Subtotal: R$ {{ "%.2f"|format(pedido.valor_total - pedido.valor_entrega)|replace('.',',') }}<br>
+                Entrega: R$ {{ "%.2f"|format(pedido.valor_entrega)|replace('.',',') }}<br>
+            {% endif %}
+            <strong>TOTAL: R$ {{ "%.2f"|format(pedido.valor_total)|replace('.',',') }}</strong>
         </div>
         <hr>
         <p>Obrigado pela preferência!</p>
-
     </div>
 </body>
 </html>

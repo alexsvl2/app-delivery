@@ -21,65 +21,9 @@
 {% endwith %}
 
 <div class="d-grid gap-2 mb-4">
-    <button class="btn btn-primary btn-lg" type="button" data-bs-toggle="collapse" data-bs-target="#collapseNovoPedido" aria-expanded="false" aria-controls="collapseNovoPedido">
+    <button class="btn btn-primary btn-lg" type="button" data-bs-toggle="modal" data-bs-target="#novoPedidoModal">
         + Novo Pedido
     </button>
-</div>
-
-<div class="collapse" id="collapseNovoPedido">
-    <div class="card card-body mb-4">
-        <h3 class="mb-3">Cadastrar Novo Pedido</h3>
-        <form method="POST" action="{{ url_for('dashboard') }}">
-            <div class="row g-3">
-                <div class="col-md-6">
-                    <label for="nome_cliente" class="form-label">Nome do Cliente</label>
-                    <input type="text" class="form-control" id="nome_cliente" name="nome_cliente" required>
-                </div>
-                <div class="col-md-6">
-                    <label for="tipo_pedido" class="form-label">Tipo</label>
-                    <select class="form-select" id="tipo_pedido" name="tipo_pedido" onchange="toggleDeliveryFields()">
-                        <option value="Retirada">Retirada no Balcão</option>
-                        <option value="Delivery">Delivery</option>
-                    </select>
-                </div>
-                <div class="col-12" id="delivery-fields" style="display: none;">
-                    <div class="row g-3">
-                        <div class="col-md-8">
-                            <label for="endereco" class="form-label">Endereço (Rua, Número)</label>
-                            <input type="text" class="form-control" id="endereco" name="endereco">
-                        </div>
-                        <div class="col-md-4">
-                            <label for="bairro" class="form-label">Bairro</label>
-                            <input type="text" class="form-control" id="bairro" name="bairro">
-                        </div>
-                    </div>
-                </div>
-                <div class="col-12">
-                    <label for="descricao" class="form-label">Descrição do Pedido</label>
-                    <textarea class="form-control" id="descricao" name="descricao" rows="3" required placeholder="Ex: 1x X-Tudo (sem cebola)&#10;1x Coca-cola 2L"></textarea>
-                </div>
-                <div class="col-md-3">
-                    <label for="valor" class="form-label">Valor dos Itens (R$)</label>
-                    <input type="text" inputmode="decimal" class="form-control" id="valor" name="valor" required oninput="calcularTotal()">
-                </div>
-                <div class="col-md-2">
-                    <label for="quantidade" class="form-label">Qtd.</label>
-                    <input type="number" class="form-control" id="quantidade" name="quantidade" value="1" required oninput="calcularTotal()">
-                </div>
-                <div class="col-md-3" id="delivery-fee-field" style="display: none;">
-                    <label for="valor_entrega" class="form-label">Taxa Entrega (R$)</label>
-                    <input type="text" inputmode="decimal" class="form-control" id="valor_entrega" name="valor_entrega" value="0,00" oninput="calcularTotal()">
-                </div>
-                <div class="col-md-4">
-                    <label for="valor_total" class="form-label fw-bold">Valor Total (R$)</label>
-                    <input type="text" class="form-control form-control-lg fw-bold" id="valor_total" name="valor_total_display" readonly>
-                </div>
-                <div class="col-12 mt-4">
-                    <button type="submit" class="btn btn-success">Salvar Pedido</button>
-                </div>
-            </div>
-            </form>
-    </div>
 </div>
 
 <h3 class="mt-4">Pedidos do Dia</h3>
@@ -88,8 +32,8 @@
         <thead class="table-dark">
             <tr>
                 <th>#ID</th>
-                <th>Cliente</th>
-                <th>Tipo</th>
+                <th>Cliente / Tipo</th>
+                <th>Itens</th>
                 <th>Total</th>
                 <th>Hora</th>
                 <th>Ações</th>
@@ -99,13 +43,13 @@
             {% for pedido in pedidos %}
             <tr>
                 <td>{{ pedido.id }}</td>
-                <td>{{ pedido.nome_cliente }}</td>
+                <td>{{ pedido.nome_cliente }} <br><small class="text-muted">{{pedido.tipo_pedido}}</small></td>
                 <td>
-                    {% if pedido.tipo_pedido == 'Delivery' %}
-                        <span class="badge bg-info text-dark">Delivery</span>
-                    {% else %}
-                        <span class="badge bg-secondary">Retirada</span>
-                    {% endif %}
+                    <ul class="list-unstyled mb-0 small">
+                        {% for item in pedido.itens %}
+                        <li>{{ item.quantidade }}x {{ item.descricao }}</li>
+                        {% endfor %}
+                    </ul>
                 </td>
                 <td class="fw-bold">R$ {{ "%.2f"|format(pedido.valor_total)|replace('.', ',') }}</td>
                 <td>{{ pedido.data_pedido.strftime('%H:%M') }}</td>
@@ -126,41 +70,148 @@
     </table>
 </div>
 
+<div class="modal fade" id="novoPedidoModal" tabindex="-1" aria-labelledby="novoPedidoModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl"> <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="novoPedidoModalLabel">Cadastrar Novo Pedido</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="form-novo-pedido" action="{{ url_for('novo_pedido') }}" method="POST">
+                <div class="modal-body">
+                    <div class="row mb-3">
+                        <div class="col-md-7">
+                            <label class="form-label">Nome do Cliente</label>
+                            <input type="text" class="form-control" name="nome_cliente" required>
+                        </div>
+                        <div class="col-md-5">
+                            <label class="form-label">Tipo</label>
+                            <select class="form-select" name="tipo_pedido" onchange="toggleDeliveryFieldsModal(this.value)">
+                                <option value="Retirada" selected>Retirada no Balcão</option>
+                                <option value="Delivery">Delivery</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row mb-3" id="delivery-fields-modal" style="display: none;">
+                        <div class="col-md-8">
+                            <label class="form-label">Endereço</label>
+                            <input type="text" class="form-control" name="endereco">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Bairro</label>
+                            <input type="text" class="form-control" name="bairro">
+                        </div>
+                    </div>
+                    <hr>
+                    <h5>Itens do Pedido</h5>
+                    <div id="itens-container">
+                        </div>
+                    <button type="button" class="btn btn-outline-primary btn-sm mt-2" id="add-item-btn">Adicionar Item</button>
+                    <hr>
+                    <div class="row mt-3 align-items-center">
+                        <div class="col-md-6" id="delivery-fee-modal" style="display: none;">
+                            <div class="row">
+                                <label class="col-sm-5 col-form-label">Taxa de Entrega (R$)</label>
+                                <div class="col-sm-7">
+                                    <input type="text" class="form-control" name="valor_entrega" value="0,00" oninput="updateTotals()">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6 ms-auto">
+                            <div class="row">
+                                <label class="col-sm-5 col-form-label fs-5 fw-bold">TOTAL (R$)</label>
+                                <div class="col-sm-7">
+                                    <input type="text" class="form-control fs-5 fw-bold" id="grand-total" readonly>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-success">Salvar Pedido</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<template id="item-row-template">
+    <div class="row g-2 mb-2 align-items-center item-row">
+        <div class="col-md-5"><input type="text" class="form-control item-descricao" name="item_descricao[]" placeholder="Descrição do Item" required></div>
+        <div class="col-md-2"><input type="number" class="form-control item-quantidade" name="item_quantidade[]" value="1" min="1" placeholder="Qtd" required></div>
+        <div class="col-md-2"><input type="text" class="form-control item-valor-unitario" name="item_valor_unitario[]" placeholder="Valor Unit." required></div>
+        <div class="col-md-2"><input type="text" class="form-control item-total" readonly></div>
+        <div class="col-md-1"><button type="button" class="btn btn-danger btn-sm remove-item-btn">X</button></div>
+    </div>
+</template>
+
 <script>
-    function toggleDeliveryFields() {
-        const tipoPedido = document.getElementById('tipo_pedido').value;
-        const deliveryFields = document.getElementById('delivery-fields');
-        const deliveryFeeField = document.getElementById('delivery-fee-field');
-        const enderecoInput = document.getElementById('endereco');
-        const bairroInput = document.getElementById('bairro');
+document.addEventListener('DOMContentLoaded', function() {
+    const addItemBtn = document.getElementById('add-item-btn');
+    const itensContainer = document.getElementById('itens-container');
+    const template = document.getElementById('item-row-template');
 
-        if (tipoPedido === 'Delivery') {
-            deliveryFields.style.display = 'block';
-            deliveryFeeField.style.display = 'block';
-            enderecoInput.required = true;
-            bairroInput.required = true;
-        } else {
-            deliveryFields.style.display = 'none';
-            deliveryFeeField.style.display = 'none';
-            enderecoInput.required = false;
-            bairroInput.required = false;
-            document.getElementById('valor_entrega').value = "0,00";
-        }
-        calcularTotal();
+    // Função para adicionar uma nova linha de item
+    function addNewItemRow() {
+        const clone = template.content.cloneNode(true);
+        itensContainer.appendChild(clone);
+        attachRowEventListeners(itensContainer.lastElementChild);
     }
 
-    function calcularTotal() {
-        const valor = parseFloat(document.getElementById('valor').value.replace(',', '.')) || 0;
-        const quantidade = parseInt(document.getElementById('quantidade').value) || 1;
-        const entrega = parseFloat(document.getElementById('valor_entrega').value.replace(',', '.')) || 0;
-        const total = (valor * quantidade) + entrega;
-        document.getElementById('valor_total').value = total.toFixed(2).replace('.', ',');
+    // Adiciona a primeira linha ao carregar
+    addNewItemRow(); 
+    
+    // Adiciona nova linha ao clicar no botão
+    addItemBtn.addEventListener('click', addNewItemRow);
+
+    // Função para adicionar "escutadores" de eventos a uma linha
+    function attachRowEventListeners(row) {
+        row.querySelector('.remove-item-btn').addEventListener('click', function() {
+            row.remove();
+            updateTotals();
+        });
+        row.querySelectorAll('.item-quantidade, .item-valor-unitario').forEach(input => {
+            input.addEventListener('input', updateTotals);
+        });
     }
 
-    document.addEventListener('DOMContentLoaded', function() {
-        toggleDeliveryFields();
-        calcularTotal();
+    // Inicializa "escutadores" para a primeira linha (se houver)
+    const firstRow = itensContainer.querySelector('.item-row');
+    if (firstRow) {
+        attachRowEventListeners(firstRow);
+    }
+});
+
+// Função para mostrar/ocultar campos de delivery NO MODAL
+function toggleDeliveryFieldsModal(value) {
+    const deliveryFields = document.getElementById('delivery-fields-modal');
+    const deliveryFee = document.getElementById('delivery-fee-modal');
+    if (value === 'Delivery') {
+        deliveryFields.style.display = 'flex';
+        deliveryFee.style.display = 'block';
+    } else {
+        deliveryFields.style.display = 'none';
+        deliveryFee.style.display = 'none';
+        deliveryFee.querySelector('input').value = '0,00';
+    }
+    updateTotals();
+}
+
+// Função global para atualizar todos os totais
+function updateTotals() {
+    let grandTotal = 0;
+    document.querySelectorAll('#itens-container .item-row').forEach(row => {
+        const qty = parseFloat(row.querySelector('.item-quantidade').value) || 0;
+        const price = parseFloat(row.querySelector('.item-valor-unitario').value.replace(',', '.')) || 0;
+        const itemTotal = qty * price;
+        row.querySelector('.item-total').value = itemTotal.toFixed(2).replace('.', ',');
+        grandTotal += itemTotal;
     });
-</script>
 
+    const deliveryFee = parseFloat(document.querySelector('[name="valor_entrega"]').value.replace(',', '.')) || 0;
+    grandTotal += deliveryFee;
+
+    document.getElementById('grand-total').value = grandTotal.toFixed(2).replace('.', ',');
+}
+</script>
 {% endblock %}

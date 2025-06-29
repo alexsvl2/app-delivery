@@ -1,4 +1,4 @@
-# app.py (VERSÃO COMPLETA E ATUALIZADA)
+# app.py (VERSÃO FINAL CORRIGIDA)
 
 import os
 from flask import Flask, render_template, request, redirect, url_for, flash
@@ -65,9 +65,19 @@ def load_user(user_id):
 def login():
     if current_user.is_authenticated:
         return redirect(url_for('dashboard'))
+    
+    # CORREÇÃO DE INDENTAÇÃO APLICADA AQUI
     if request.method == 'POST':
-        # Lógica de login...
-        # (código omitido para brevidade, continua o mesmo)
+        username = request.form.get('username')
+        password = request.form.get('password')
+        user = Usuario.query.filter_by(username=username).first()
+        
+        if user and user.check_password(password):
+            login_user(user)
+            return redirect(url_for('dashboard'))
+        else:
+            flash('Usuário ou senha inválidos.', 'danger')
+            
     return render_template('login.html')
 
 @app.route('/logout')
@@ -82,8 +92,30 @@ def logout():
 def dashboard():
     if request.method == 'POST':
         try:
-            # Lógica para CADASTRAR novo pedido
-            # (código omitido para brevidade, continua o mesmo)
+            tipo_pedido = request.form['tipo_pedido']
+            valor_str = request.form['valor'].replace(',', '.')
+            valor = float(valor_str)
+            quantidade = int(request.form['quantidade'])
+            
+            valor_entrega_str = request.form.get('valor_entrega', '0.0').replace(',', '.')
+            valor_entrega = float(valor_entrega_str) if tipo_pedido == 'Delivery' else 0.0
+            valor_total = (valor * quantidade) + valor_entrega
+
+            novo_pedido = Pedido(
+                nome_cliente=request.form['nome_cliente'],
+                endereco=request.form.get('endereco', ''),
+                bairro=request.form.get('bairro', ''),
+                descricao=request.form['descricao'],
+                quantidade=quantidade,
+                valor=valor,
+                valor_entrega=valor_entrega,
+                valor_total=valor_total,
+                tipo_pedido=tipo_pedido
+            )
+            
+            db.session.add(novo_pedido)
+            db.session.commit()
+            
             flash('Pedido cadastrado com sucesso!', 'success')
             return redirect(url_for('dashboard'))
 
@@ -91,20 +123,17 @@ def dashboard():
             db.session.rollback()
             flash(f'Erro ao cadastrar o pedido: {e}', 'danger')
 
-    # MUDANÇA 02: Mostra apenas os pedidos do dia atual
     hoje = date.today()
     pedidos_do_dia = Pedido.query.filter(cast(Pedido.data_pedido, Date) == hoje).order_by(Pedido.data_pedido.desc()).all()
     
     return render_template('dashboard.html', pedidos=pedidos_do_dia)
 
-# MUDANÇA 03: Rota para o histórico de pedidos
 @app.route('/historico')
 @login_required
 def historico():
     todos_os_pedidos = Pedido.query.order_by(Pedido.data_pedido.desc()).all()
     return render_template('historico.html', pedidos=todos_os_pedidos)
 
-# MUDANÇA 04: Rota para EDITAR um pedido
 @app.route('/editar_pedido/<int:pedido_id>', methods=['GET', 'POST'])
 @login_required
 def editar_pedido(pedido_id):
@@ -115,7 +144,6 @@ def editar_pedido(pedido_id):
 
     if request.method == 'POST':
         try:
-            # Atualiza os dados do pedido com os dados do formulário
             pedido.nome_cliente = request.form['nome_cliente']
             pedido.tipo_pedido = request.form['tipo_pedido']
             pedido.endereco = request.form.get('endereco', '')
@@ -129,7 +157,6 @@ def editar_pedido(pedido_id):
             valor_entrega_str = request.form.get('valor_entrega', '0.0').replace(',', '.')
             pedido.valor_entrega = float(valor_entrega_str) if pedido.tipo_pedido == 'Delivery' else 0.0
             
-            # Recalcula o valor total
             pedido.valor_total = (pedido.valor * pedido.quantidade) + pedido.valor_entrega
             
             db.session.commit()
@@ -142,7 +169,6 @@ def editar_pedido(pedido_id):
             
     return render_template('editar_pedido.html', pedido=pedido)
 
-# MUDANÇA 04: Rota para EXCLUIR um pedido
 @app.route('/excluir_pedido/<int:pedido_id>', methods=['POST'])
 @login_required
 def excluir_pedido(pedido_id):
@@ -158,7 +184,6 @@ def excluir_pedido(pedido_id):
     else:
         flash('Pedido não encontrado.', 'danger')
     
-    # Redireciona para a página de onde o usuário veio (dashboard ou histórico)
     return redirect(request.referrer or url_for('dashboard'))
 
 

@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1 class="mb-4">Editando Pedido #{{ pedido.id }}</h1>
+
+<div class="card">
+    <div class="card-body">
+        <form method="POST" action="{{ url_for('editar_pedido', pedido_id=pedido.id) }}">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label for="nome_cliente" class="form-label">Nome do Cliente</label>
+                    <input type="text" class="form-control" id="nome_cliente" name="nome_cliente" value="{{ pedido.nome_cliente }}" required>
+                </div>
+                <div class="col-md-6">
+                    <label for="tipo_pedido" class="form-label">Tipo</label>
+                    <select class="form-select" id="tipo_pedido" name="tipo_pedido" onchange="toggleDeliveryFields()">
+                        <option value="Retirada" {% if pedido.tipo_pedido == 'Retirada' %}selected{% endif %}>Retirada no Balcão</option>
+                        <option value="Delivery" {% if pedido.tipo_pedido == 'Delivery' %}selected{% endif %}>Delivery</option>
+                    </select>
+                </div>
+
+                <div class="col-12" id="delivery-fields">
+                    <div class="row g-3">
+                        <div class="col-md-8">
+                            <label for="endereco" class="form-label">Endereço</label>
+                            <input type="text" class="form-control" id="endereco" name="endereco" value="{{ pedido.endereco or '' }}">
+                        </div>
+                        <div class="col-md-4">
+                            <label for="bairro" class="form-label">Bairro</label>
+                            <input type="text" class="form-control" id="bairro" name="bairro" value="{{ pedido.bairro or '' }}">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-12">
+                    <label for="descricao" class="form-label">Descrição do Pedido</label>
+                    <textarea class="form-control" id="descricao" name="descricao" rows="3" required>{{ pedido.descricao }}</textarea>
+                </div>
+
+                <div class="col-md-3">
+                    <label for="valor" class="form-label">Valor dos Itens (R$)</label>
+                    <input type="text" inputmode="decimal" class="form-control" id="valor" name="valor" value="{{ '%.2f'|format(pedido.valor)|replace('.', ',') }}" required oninput="calcularTotal()">
+                </div>
+                <div class="col-md-2">
+                    <label for="quantidade" class="form-label">Qtd.</label>
+                    <input type="number" class="form-control" id="quantidade" name="quantidade" value="{{ pedido.quantidade }}" required oninput="calcularTotal()">
+                </div>
+                <div class="col-md-3" id="delivery-fee-field">
+                    <label for="valor_entrega" class="form-label">Taxa Entrega (R$)</label>
+                    <input type="text" inputmode="decimal" class="form-control" id="valor_entrega" name="valor_entrega" value="{{ '%.2f'|format(pedido.valor_entrega or 0)|replace('.', ',') }}" oninput="calcularTotal()">
+                </div>
+                <div class="col-md-4">
+                    <label for="valor_total" class="form-label fw-bold">Valor Total (R$)</label>
+                    <input type="text" class="form-control form-control-lg fw-bold" id="valor_total" name="valor_total_display" readonly>
+                </div>
+
+                <div class="col-12 mt-4 d-flex justify-content-end">
+                    <a href="{{ url_for('dashboard') }}" class="btn btn-secondary me-2">Cancelar</a>
+                    <button type="submit" class="btn btn-success">Salvar Alterações</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    // O mesmo script JS do dashboard para os cálculos e toggle
+    function toggleDeliveryFields() {
+        const tipoPedido = document.getElementById('tipo_pedido').value;
+        const deliveryFields = document.getElementById('delivery-fields');
+        const deliveryFeeField = document.getElementById('delivery-fee-field');
+        if (tipoPedido === 'Delivery') {
+            deliveryFields.style.display = 'block';
+            deliveryFeeField.style.display = 'block';
+        } else {
+            deliveryFields.style.display = 'none';
+            deliveryFeeField.style.display = 'none';
+            document.getElementById('valor_entrega').value = "0,00";
+        }
+        calcularTotal();
+    }
+
+    function calcularTotal() {
+        const valor = parseFloat(document.getElementById('valor').value.replace(',', '.')) || 0;
+        const quantidade = parseInt(document.getElementById('quantidade').value) || 1;
+        const entrega = parseFloat(document.getElementById('valor_entrega').value.replace(',', '.')) || 0;
+        const total = (valor * quantidade) + entrega;
+        document.getElementById('valor_total').value = total.toFixed(2).replace('.', ',');
+    }
+
+    // Executa as funções ao carregar a página para garantir o estado correto do formulário
+    document.addEventListener('DOMContentLoaded', function() {
+        toggleDeliveryFields();
+        calcularTotal();
+    });
+</script>
+{% endblock %}

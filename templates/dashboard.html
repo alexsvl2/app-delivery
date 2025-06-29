@@ -30,7 +30,55 @@
     <div class="card card-body mb-4">
         <h3 class="mb-3">Cadastrar Novo Pedido</h3>
         <form method="POST" action="{{ url_for('dashboard') }}">
-             </form>
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label for="nome_cliente" class="form-label">Nome do Cliente</label>
+                    <input type="text" class="form-control" id="nome_cliente" name="nome_cliente" required>
+                </div>
+                <div class="col-md-6">
+                    <label for="tipo_pedido" class="form-label">Tipo</label>
+                    <select class="form-select" id="tipo_pedido" name="tipo_pedido" onchange="toggleDeliveryFields()">
+                        <option value="Retirada">Retirada no Balcão</option>
+                        <option value="Delivery">Delivery</option>
+                    </select>
+                </div>
+                <div class="col-12" id="delivery-fields" style="display: none;">
+                    <div class="row g-3">
+                        <div class="col-md-8">
+                            <label for="endereco" class="form-label">Endereço (Rua, Número)</label>
+                            <input type="text" class="form-control" id="endereco" name="endereco">
+                        </div>
+                        <div class="col-md-4">
+                            <label for="bairro" class="form-label">Bairro</label>
+                            <input type="text" class="form-control" id="bairro" name="bairro">
+                        </div>
+                    </div>
+                </div>
+                <div class="col-12">
+                    <label for="descricao" class="form-label">Descrição do Pedido</label>
+                    <textarea class="form-control" id="descricao" name="descricao" rows="3" required placeholder="Ex: 1x X-Tudo (sem cebola)&#10;1x Coca-cola 2L"></textarea>
+                </div>
+                <div class="col-md-3">
+                    <label for="valor" class="form-label">Valor dos Itens (R$)</label>
+                    <input type="text" inputmode="decimal" class="form-control" id="valor" name="valor" required oninput="calcularTotal()">
+                </div>
+                <div class="col-md-2">
+                    <label for="quantidade" class="form-label">Qtd.</label>
+                    <input type="number" class="form-control" id="quantidade" name="quantidade" value="1" required oninput="calcularTotal()">
+                </div>
+                <div class="col-md-3" id="delivery-fee-field" style="display: none;">
+                    <label for="valor_entrega" class="form-label">Taxa Entrega (R$)</label>
+                    <input type="text" inputmode="decimal" class="form-control" id="valor_entrega" name="valor_entrega" value="0,00" oninput="calcularTotal()">
+                </div>
+                <div class="col-md-4">
+                    <label for="valor_total" class="form-label fw-bold">Valor Total (R$)</label>
+                    <input type="text" class="form-control form-control-lg fw-bold" id="valor_total" name="valor_total_display" readonly>
+                </div>
+                <div class="col-12 mt-4">
+                    <button type="submit" class="btn btn-success">Salvar Pedido</button>
+                </div>
+            </div>
+            </form>
     </div>
 </div>
 
@@ -43,7 +91,7 @@
                 <th>Cliente</th>
                 <th>Tipo</th>
                 <th>Total</th>
-                <th>Data</th>
+                <th>Hora</th>
                 <th>Ações</th>
             </tr>
         </thead>
@@ -54,7 +102,7 @@
                 <td>{{ pedido.nome_cliente }}</td>
                 <td>
                     {% if pedido.tipo_pedido == 'Delivery' %}
-                        <span class="badge bg-info">Delivery</span>
+                        <span class="badge bg-info text-dark">Delivery</span>
                     {% else %}
                         <span class="badge bg-secondary">Retirada</span>
                     {% endif %}
@@ -79,7 +127,40 @@
 </div>
 
 <script>
-    // Script JS para toggle e cálculos (código omitido, continua o mesmo)
+    function toggleDeliveryFields() {
+        const tipoPedido = document.getElementById('tipo_pedido').value;
+        const deliveryFields = document.getElementById('delivery-fields');
+        const deliveryFeeField = document.getElementById('delivery-fee-field');
+        const enderecoInput = document.getElementById('endereco');
+        const bairroInput = document.getElementById('bairro');
+
+        if (tipoPedido === 'Delivery') {
+            deliveryFields.style.display = 'block';
+            deliveryFeeField.style.display = 'block';
+            enderecoInput.required = true;
+            bairroInput.required = true;
+        } else {
+            deliveryFields.style.display = 'none';
+            deliveryFeeField.style.display = 'none';
+            enderecoInput.required = false;
+            bairroInput.required = false;
+            document.getElementById('valor_entrega').value = "0,00";
+        }
+        calcularTotal();
+    }
+
+    function calcularTotal() {
+        const valor = parseFloat(document.getElementById('valor').value.replace(',', '.')) || 0;
+        const quantidade = parseInt(document.getElementById('quantidade').value) || 1;
+        const entrega = parseFloat(document.getElementById('valor_entrega').value.replace(',', '.')) || 0;
+        const total = (valor * quantidade) + entrega;
+        document.getElementById('valor_total').value = total.toFixed(2).replace('.', ',');
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        toggleDeliveryFields();
+        calcularTotal();
+    });
 </script>
 
 {% endblock %}

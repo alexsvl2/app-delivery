@@ -1,4 +1,4 @@
-# app.py (VERSÃO CORRIGIDA)
+# app.py (VERSÃO COMPLETA E ATUALIZADA)
 
 import os
 from flask import Flask, render_template, request, redirect, url_for, flash
@@ -25,10 +25,10 @@ login_manager.login_message = "Por favor, faça o login para acessar esta págin
 login_manager.login_message_category = "info"
 
 
-# --- Modelos do Banco de Dados (com nomes das tabelas corrigidos) ---
+# --- Modelos do Banco de Dados (com nomes das tabelas com prefixo) ---
 
 class Usuario(UserMixin, db.Model):
-    __tablename__ = 'delivery_usuarios' # Nome da tabela com prefixo
+    __tablename__ = 'delivery_usuarios'
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
     password_hash = db.Column(db.String(255), nullable=False)
@@ -37,7 +37,7 @@ class Usuario(UserMixin, db.Model):
         return check_password_hash(self.password_hash, password)
 
 class Pedido(db.Model):
-    __tablename__ = 'delivery_pedidos' # Nome da tabela com prefixo
+    __tablename__ = 'delivery_pedidos'
     id = db.Column(db.Integer, primary_key=True)
     nome_cliente = db.Column(db.String(100), nullable=False)
     endereco = db.Column(db.Text)
@@ -90,18 +90,16 @@ def logout():
 def dashboard():
     if request.method == 'POST':
         try:
-            # Coleta de dados do formulário
             tipo_pedido = request.form['tipo_pedido']
+            # Converte para float, aceitando tanto '.' quanto ',' como separador decimal
             valor_str = request.form['valor'].replace(',', '.')
             valor = float(valor_str)
             quantidade = int(request.form['quantidade'])
             
-            # Cálculo do valor de entrega e total
             valor_entrega_str = request.form.get('valor_entrega', '0.0').replace(',', '.')
             valor_entrega = float(valor_entrega_str) if tipo_pedido == 'Delivery' else 0.0
             valor_total = (valor * quantidade) + valor_entrega
 
-            # Criação do novo pedido
             novo_pedido = Pedido(
                 nome_cliente=request.form['nome_cliente'],
                 endereco=request.form.get('endereco', ''),
@@ -118,14 +116,13 @@ def dashboard():
             db.session.commit()
             
             flash('Pedido cadastrado com sucesso!', 'success')
-            # Redireciona para a impressão após salvar
-            return redirect(url_for('imprimir_pedido', pedido_id=novo_pedido.id))
+            # MUDANÇA 01: Redireciona para o painel em vez de para a impressão
+            return redirect(url_for('dashboard'))
 
         except Exception as e:
             db.session.rollback()
             flash(f'Erro ao cadastrar o pedido: {e}', 'danger')
 
-    # Exibe os últimos 20 pedidos no dashboard
     pedidos_recentes = Pedido.query.order_by(Pedido.data_pedido.desc()).limit(20).all()
     return render_template('dashboard.html', pedidos=pedidos_recentes)
 
@@ -133,12 +130,11 @@ def dashboard():
 @app.route('/imprimir/<int:pedido_id>')
 @login_required
 def imprimir_pedido(pedido_id):
-    # Usamos db.session.get para buscar pela chave primária, mais eficiente
     pedido = db.session.get(Pedido, pedido_id)
     if not pedido:
         return "Pedido não encontrado", 404
     return render_template('imprimir_pedido.html', pedido=pedido)
 
-# Apenas para desenvolvimento local. O Gunicorn não usa isso.
+
 if __name__ == '__main__':
     app.run(debug=True)

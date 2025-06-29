@@ -4,34 +4,31 @@
     <meta charset="UTF-8">
     <title>Pedido #{{ pedido.id }}</title>
     <style>
-        /* A fonte e o tamanho podem precisar de ajuste fino */
         body {
             font-family: 'Courier New', Courier, monospace;
-            width: 78mm; /* Largura aproximada da bobina de 80mm */
+            width: 78mm;
             font-size: 12pt;
             color: #000;
             margin: 0;
             padding: 1mm;
         }
-        .container {
-            width: 100%;
-        }
+        .container { width: 100%; }
         h1, h2, p, .item {
             margin: 2mm 0;
             text-align: center;
         }
-        h1 { font-size: 16pt; }
+        h1 { font-size: 16pt; margin-bottom: 1mm; }
         h2 { font-size: 14pt; border-bottom: 1px dashed #000; padding-bottom: 2mm; }
-        p { font-size: 10pt; }
+        p { font-size: 10pt; margin-top: 1mm; }
         .info { text-align: left; font-size: 11pt; }
         .total { font-size: 14pt; font-weight: bold; }
-        hr { border: none; border-top: 1px dashed #000; }
+        hr { border: none; border-top: 1px dashed #000; margin: 2mm 0; }
     </style>
 </head>
 <body onload="window.print();">
     <div class="container">
-        <h1>Seu Estabelecimento</h1>
-        <p>Rua Exemplo, 123 - Tel: (99) 99999-9999</p>
+        <h1>DOGÃO DO ALEX</h1>
+        <p>Rua da Matriz, 10 - Centro - Tel: (19) 91234-5678</p>
         <hr>
         
         <h2>{{ pedido.tipo_pedido.upper() }} - Pedido #{{ pedido.id }}</h2>
@@ -54,15 +51,15 @@
         
         <div class="info">
             <strong>Quantidade:</strong> {{ pedido.quantidade }} <br>
-            <strong>Valor Itens:</strong> R$ {{ "%.2f"|format(pedido.valor * pedido.quantidade) }} <br>
+            <strong>Valor Itens:</strong> R$ {{ "%.2f"|format(pedido.valor * pedido.quantidade)|replace('.',',') }} <br>
             {% if pedido.tipo_pedido == 'Delivery' %}
-                <strong>Taxa Entrega:</strong> R$ {{ "%.2f"|format(pedido.valor_entrega) }} <br>
+                <strong>Taxa Entrega:</strong> R$ {{ "%.2f"|format(pedido.valor_entrega)|replace('.',',') }} <br>
             {% endif %}
         </div>
         
         <hr>
-        <div class="total">
-            TOTAL: R$ {{ "%.2f"|format(pedido.valor_total) }}
+        <div class="total" style="text-align: right;">
+            TOTAL: R$ {{ "%.2f"|format(pedido.valor_total)|replace('.',',') }}
         </div>
         <hr>
         <p>Obrigado pela preferência!</p>

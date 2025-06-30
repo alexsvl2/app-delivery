@@ -26,7 +26,7 @@
                 <td>
                     <ul class="list-unstyled mb-0 small">
                         {% for item in pedido.itens %}
-                        <li>{{ item.quantidade }}x {{ item.descricao }}</li>
+                        <li>{{ item.quantidade }}x {{ item.produto_descricao }}</li>
                         {% endfor %}
                     </ul>
                 </td>
@@ -34,7 +34,6 @@
                 <td>{{ pedido.data_pedido.strftime('%d/%m/%Y %H:%M') }}</td>
                 <td>
                     <a href="{{ url_for('imprimir_pedido', pedido_id=pedido.id) }}" class="btn btn-sm btn-secondary" target="_blank" title="Imprimir">🖨️</a>
-                    <a href="{{ url_for('editar_pedido', pedido_id=pedido.id) }}" class="btn btn-sm btn-warning" title="Editar">✏️</a>
                     <form action="{{ url_for('excluir_pedido', pedido_id=pedido.id) }}" method="POST" style="display: inline;" onsubmit="return confirm('Tem certeza que deseja excluir este pedido?');">
                         <button type="submit" class="btn btn-sm btn-danger" title="Excluir">🗑️</button>
                     </form>

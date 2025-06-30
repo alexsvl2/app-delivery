@@ -1,4 +1,4 @@
-# create_user.py (VERSÃO FINAL ALINHADA)
+# create_user.py (VERSÃO FINALÍSSIMA)
 
 import os
 from flask import Flask
@@ -27,7 +27,8 @@ class Pedido(db.Model):
     __tablename__ = 'delivery_pedidos'
     id = db.Column(db.Integer, primary_key=True)
     cliente_id = db.Column(db.Integer, db.ForeignKey('delivery_clientes.id'), nullable=False)
-    cliente_nome = db.Column(db.String(100), nullable=False) # ADICIONADO AQUI
+    # AQUI ESTÁ A CORREÇÃO: A COLUNA QUE FALTAVA FOI ADICIONADA
+    cliente_nome = db.Column(db.String(100), nullable=False)
     cliente = db.relationship('Cliente', backref='pedidos')
     valor_entrega = db.Column(db.Numeric(10, 2), default=0.0)
     valor_total = db.Column(db.Numeric(10, 2), nullable=False)
@@ -61,7 +62,7 @@ class Produto(db.Model):
 
 def criar_tudo():
     with app.app_context():
-        print("Criando todas as tabelas (versão final)...")
+        print("Criando todas as tabelas (versão final alinhada)...")
         db.create_all()
         print("Tabelas criadas ou já existentes.")
         

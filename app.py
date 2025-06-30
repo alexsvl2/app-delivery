@@ -1,4 +1,4 @@
-# app.py (VERSÃO FINAL COM A ÚLTIMA CORREÇÃO)
+# app.py (VERSÃO FINAL DEFINITIVA)
 
 import os
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
@@ -35,8 +35,9 @@ class Pedido(db.Model):
     __tablename__ = 'delivery_pedidos'
     id = db.Column(db.Integer, primary_key=True)
     cliente_id = db.Column(db.Integer, db.ForeignKey('delivery_clientes.id'), nullable=False)
+    # AQUI ESTÁ A CORREÇÃO: A COLUNA ESTÁ DE VOLTA PARA COMBINAR COM O BANCO DE DADOS
+    cliente_nome = db.Column(db.String(100), nullable=False) 
     cliente = db.relationship('Cliente', backref='pedidos')
-    # A COLUNA 'cliente_nome' FOI REMOVIDA DAQUI PARA ALINHAR COM O BANCO DE DADOS
     valor_entrega = db.Column(db.Numeric(10, 2), default=0.0)
     valor_total = db.Column(db.Numeric(10, 2), nullable=False)
     data_pedido = db.Column(db.DateTime, default=db.func.now())
@@ -93,6 +94,7 @@ def logout():
 @login_required
 def dashboard():
     hoje = date.today()
+    # A consulta foi simplificada para evitar o erro, o nome do cliente será acessado via relationship
     pedidos_do_dia = Pedido.query.filter(cast(Pedido.data_pedido, Date) == hoje).order_by(Pedido.data_pedido.desc()).all()
     clientes = Cliente.query.order_by(Cliente.nome).all()
     produtos = Produto.query.order_by(Produto.descricao).all()
@@ -109,8 +111,14 @@ def novo_pedido():
             flash('Selecione um cliente para o pedido.', 'warning')
             return redirect(url_for('dashboard'))
 
+        cliente_selecionado = db.session.get(Cliente, int(cliente_id))
+        if not cliente_selecionado:
+            flash('Cliente selecionado não encontrado.', 'danger')
+            return redirect(url_for('dashboard'))
+
         novo_pedido = Pedido(
             cliente_id=cliente_id,
+            cliente_nome=cliente_selecionado.nome, # <-- AQUI ESTÁ A LÓGICA CORRETA
             tipo_pedido=request.form['tipo_pedido']
         )
         
@@ -168,14 +176,7 @@ def imprimir_pedido(pedido_id):
     pedido = db.session.get(Pedido, pedido_id)
     if not pedido:
         return "Pedido não encontrado", 404
-    # Buscando o endereço do cliente associado para a impressão
-    if pedido.tipo_pedido == 'Delivery' and pedido.cliente:
-        endereco_impressao = pedido.cliente.endereco
-        bairro_impressao = pedido.cliente.bairro
-    else:
-        endereco_impressao = ""
-        bairro_impressao = ""
-    return render_template('imprimir_pedido.html', pedido=pedido, endereco_impressao=endereco_impressao, bairro_impressao=bairro_impressao)
+    return render_template('imprimir_pedido.html', pedido=pedido)
 
 @app.route('/historico')
 @login_required
@@ -207,13 +208,12 @@ def novo_cliente():
 @login_required
 def excluir_cliente(id):
     cliente = db.session.get(Cliente, id)
-    if cliente:
-        if cliente.pedidos:
-            flash('Não é possível excluir um cliente que já possui pedidos.', 'warning')
-            return redirect(url_for('gerenciar_clientes'))
+    if cliente and not cliente.pedidos:
         db.session.delete(cliente)
         db.session.commit()
         flash('Cliente excluído.', 'success')
+    elif cliente:
+        flash('Não é possível excluir um cliente que já possui pedidos.', 'warning')
     return redirect(url_for('gerenciar_clientes'))
 
 # --- ROTAS DE GESTÃO DE PRODUTOS ---
@@ -240,28 +240,12 @@ def novo_produto():
 @app.route('/produtos/excluir/<int:id>', methods=['POST'])
 @login_required
 def excluir_produto(id):
-    # Idealmente, verificar se o produto está em algum ItemPedido antes de excluir
     produto = db.session.get(Produto, id)
     if produto:
         db.session.delete(produto)
         db.session.commit()
         flash('Produto excluído.', 'success')
     return redirect(url_for('gerenciar_produtos'))
-
-# --- ROTAS DE API (para o formulário dinâmico) ---
-@app.route('/api/clientes/<int:id>')
-@login_required
-def api_cliente_detalhes(id):
-    cliente = db.session.get(Cliente, id)
-    if cliente:
-        return jsonify({
-            'id': cliente.id, 
-            'nome': cliente.nome, 
-            'endereco': cliente.endereco or '', 
-            'bairro': cliente.bairro or ''
-        })
-    return jsonify({'error': 'Cliente não encontrado'}), 404
-
 
 if __name__ == '__main__':
     app.run(debug=True)

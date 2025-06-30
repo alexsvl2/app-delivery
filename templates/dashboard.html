@@ -81,14 +81,20 @@
                     <div class="row mb-3">
                         <div class="col-md-7">
                             <label class="form-label">Cliente</label>
-                            <select class="form-select" name="cliente_id" id="select-cliente" required onchange="selecionarCliente(this.value)">
+                            <select class="form-select" name="cliente_id" id="select-cliente" required onchange="selecionarCliente(this)">
                                 <option value="" selected disabled>Selecione um cliente...</option>
                                 {% for cliente in clientes %}
                                 <option value="{{ cliente.id }}" data-endereco="{{ cliente.endereco or '' }}" data-bairro="{{ cliente.bairro or '' }}">{{ cliente.nome }}</option>
                                 {% endfor %}
                             </select>
                         </div>
-                        <div class="col-md-5"><label class="form-label">Tipo</label><select class="form-select" name="tipo_pedido" onchange="toggleDeliveryFieldsModal(this.value)"><option value="Retirada" selected>Retirada no Balcão</option><option value="Delivery">Delivery</option></select></div>
+                        <div class="col-md-5">
+                            <label class="form-label">Tipo</label>
+                            <select class="form-select" name="tipo_pedido" onchange="toggleDeliveryFieldsModal(this.value)">
+                                <option value="Retirada" selected>Retirada no Balcão</option>
+                                <option value="Delivery">Delivery</option>
+                            </select>
+                        </div>
                     </div>
                     <div class="row mb-3" id="delivery-fields-modal" style="display: none;">
                         <div class="col-md-8"><label class="form-label">Endereço</label><input type="text" class="form-control" name="endereco" id="cliente-endereco"></div>
@@ -107,10 +113,12 @@
                         </div>
                         <div class="col-md-5"><button type="button" class="btn btn-outline-primary" id="add-item-btn">Adicionar Produto Selecionado</button></div>
                     </div>
-                    <div id="itens-container"></div>
+                    <div id="itens-container" class="mb-3"></div>
                     <hr>
                     <div class="row mt-3 align-items-center">
-                        <div class="col-md-6" id="delivery-fee-modal" style="display: none;"><div class="row"><label class="col-sm-5 col-form-label">Taxa de Entrega (R$)</label><div class="col-sm-7"><input type="text" class="form-control" name="valor_entrega" value="0,00" oninput="updateTotals()"></div></div></div>
+                        <div class="col-md-6" id="delivery-fee-modal" style="display: none;">
+                            <div class="row"><label class="col-sm-5 col-form-label">Taxa de Entrega (R$)</label><div class="col-sm-7"><input type="text" class="form-control" name="valor_entrega" value="0,00" oninput="updateTotals()"></div></div>
+                        </div>
                         <div class="col-md-6 ms-auto"><div class="row"><label class="col-sm-5 col-form-label fs-5 fw-bold">TOTAL (R$)</label><div class="col-sm-7"><input type="text" class="form-control fs-5 fw-bold" id="grand-total" readonly></div></div></div>
                     </div>
                 </div>
@@ -135,6 +143,79 @@
 </template>
 
 <script>
-// JavaScript para o Modal
+document.addEventListener('DOMContentLoaded', function() {
+    const addItemBtn = document.getElementById('add-item-btn');
+    const selectProduto = document.getElementById('select-produto');
+    const itensContainer = document.getElementById('itens-container');
+    const template = document.getElementById('item-row-template');
+
+    // MUDANÇA 1: Lógica para adicionar o produto selecionado
+    addItemBtn.addEventListener('click', function() {
+        const selectedOption = selectProduto.options[selectProduto.selectedIndex];
+        if (!selectedOption || !selectedOption.value) {
+            alert('Por favor, selecione um produto.');
+            return;
+        }
+
+        const clone = template.content.cloneNode(true);
+        const newRow = clone.querySelector('.item-row');
+        
+        newRow.querySelector('.item-produto-id').value = selectedOption.value;
+        newRow.querySelector('.item-descricao').value = selectedOption.text;
+        
+        const valor = parseFloat(selectedOption.dataset.valor);
+        newRow.querySelector('.item-valor-unitario').value = valor.toFixed(2).replace('.', ',');
+
+        itensContainer.appendChild(clone);
+        attachRowEventListeners(newRow);
+        updateTotals();
+    });
+
+    function attachRowEventListeners(row) {
+        row.querySelector('.remove-item-btn').addEventListener('click', function() {
+            row.remove();
+            updateTotals();
+        });
+        row.querySelector('.item-quantidade').addEventListener('input', updateTotals);
+    }
+});
+
+function selecionarCliente(selectElement) {
+    const selectedOption = selectElement.options[selectElement.selectedIndex];
+    document.getElementById('cliente-endereco').value = selectedOption.dataset.endereco;
+    document.getElementById('cliente-bairro').value = selectedOption.dataset.bairro;
+}
+
+// MUDANÇA 2: Lógica para mostrar/ocultar campos de delivery
+function toggleDeliveryFieldsModal(value) {
+    const deliveryFields = document.getElementById('delivery-fields-modal');
+    const deliveryFee = document.getElementById('delivery-fee-modal');
+    if (value === 'Delivery') {
+        deliveryFields.style.display = 'flex'; // Usar flex para alinhar corretamente
+        deliveryFee.style.display = 'block';
+    } else {
+        deliveryFields.style.display = 'none';
+        deliveryFee.style.display = 'none';
+        deliveryFee.querySelector('input').value = '0,00';
+    }
+    updateTotals();
+}
+
+function updateTotals() {
+    let grandTotal = 0;
+    document.querySelectorAll('#itens-container .item-row').forEach(row => {
+        const qty = parseFloat(row.querySelector('.item-quantidade').value) || 0;
+        const price = parseFloat(row.querySelector('.item-valor-unitario').value.replace(',', '.')) || 0;
+        const itemTotal = qty * price;
+        row.querySelector('.item-total').value = itemTotal.toFixed(2).replace('.', ',');
+        grandTotal += itemTotal;
+    });
+
+    const deliveryFeeInput = document.querySelector('[name="valor_entrega"]');
+    const deliveryFee = parseFloat(deliveryFeeInput.value.replace(',', '.')) || 0;
+    grandTotal += deliveryFee;
+
+    document.getElementById('grand-total').value = grandTotal.toFixed(2).replace('.', ',');
+}
 </script>
 {% endblock %}

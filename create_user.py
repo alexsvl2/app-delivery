@@ -1,9 +1,9 @@
-# create_user.py (VERSÃO FINAL COMPLETA)
+# create_user.py (VERSÃO FINAL ALINHADA)
 
 import os
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
-from flask_login import UserMixin # Importação necessária
+from flask_login import UserMixin
 from werkzeug.security import generate_password_hash
 from dotenv import load_dotenv
 
@@ -16,9 +16,7 @@ app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
 
 db = SQLAlchemy(app)
 
-# --- MODELOS COMPLETOS ---
-
-# AQUI ESTÁ A CORREÇÃO PRINCIPAL
+# --- MODELOS IDÊNTICOS AO app.py ---
 class Usuario(UserMixin, db.Model):
     __tablename__ = 'delivery_usuarios'
     id = db.Column(db.Integer, primary_key=True)
@@ -29,6 +27,7 @@ class Pedido(db.Model):
     __tablename__ = 'delivery_pedidos'
     id = db.Column(db.Integer, primary_key=True)
     cliente_id = db.Column(db.Integer, db.ForeignKey('delivery_clientes.id'), nullable=False)
+    cliente_nome = db.Column(db.String(100), nullable=False) # ADICIONADO AQUI
     cliente = db.relationship('Cliente', backref='pedidos')
     valor_entrega = db.Column(db.Numeric(10, 2), default=0.0)
     valor_total = db.Column(db.Numeric(10, 2), nullable=False)
@@ -62,7 +61,7 @@ class Produto(db.Model):
 
 def criar_tudo():
     with app.app_context():
-        print("Criando todas as tabelas (com Clientes e Produtos)...")
+        print("Criando todas as tabelas (versão final)...")
         db.create_all()
         print("Tabelas criadas ou já existentes.")
         

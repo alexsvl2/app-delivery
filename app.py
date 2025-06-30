@@ -1,4 +1,4 @@
-# app.py (VERSÃO 100% COMPLETA E CORRIGIDA)
+# app.py (VERSÃO FINAL E ALINHADA)
 
 import os
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
@@ -21,11 +21,9 @@ db = SQLAlchemy(app)
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
-login_manager.login_message = "Por favor, faça o login para acessar esta página."
-login_manager.login_message_category = "info"
 
 
-# --- MODELOS FINAIS E CORRETOS ---
+# --- MODELOS FINAIS E ALINHADOS ---
 class Usuario(UserMixin, db.Model):
     __tablename__ = 'delivery_usuarios'
     id = db.Column(db.Integer, primary_key=True)
@@ -71,8 +69,7 @@ class Produto(db.Model):
 @login_manager.user_loader
 def load_user(user_id): return db.session.get(Usuario, int(user_id))
 
-
-# --- ROTAS DE AUTENTICAÇÃO E DASHBOARD ---
+# --- ROTAS ---
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if current_user.is_authenticated: return redirect(url_for('dashboard'))
@@ -100,7 +97,6 @@ def dashboard():
     produtos = Produto.query.order_by(Produto.descricao).all()
     return render_template('dashboard.html', pedidos=pedidos_do_dia, clientes=clientes, produtos=produtos)
 
-# --- ROTAS DE PEDIDOS ---
 @app.route('/novo_pedido', methods=['POST'])
 @login_required
 def novo_pedido():
@@ -118,15 +114,12 @@ def novo_pedido():
             nome_cliente=cliente_selecionado.nome,
             tipo_pedido=request.form['tipo_pedido']
         )
-        
         produto_ids = request.form.getlist('produto_id[]')
         quantidades = request.form.getlist('item_quantidade[]')
-        
         if not produto_ids:
             flash('Adicione pelo menos um item ao pedido.', 'warning'); return redirect(url_for('dashboard'))
 
         valor_total_itens = Decimal('0.0')
-
         for i in range(len(produto_ids)):
             if produto_ids[i]:
                 produto = db.session.get(Produto, int(produto_ids[i]))
@@ -180,7 +173,6 @@ def historico():
     pedidos = Pedido.query.order_by(Pedido.data_pedido.desc()).all()
     return render_template('historico.html', pedidos=pedidos)
 
-# --- ROTAS DE GESTÃO DE CLIENTES ---
 @app.route('/clientes')
 @login_required
 def gerenciar_clientes():
@@ -212,7 +204,6 @@ def excluir_cliente(id):
         flash('Não é possível excluir um cliente que já possui pedidos.', 'warning')
     return redirect(url_for('gerenciar_clientes'))
 
-# --- ROTAS DE GESTÃO DE PRODUTOS ---
 @app.route('/produtos')
 @login_required
 def gerenciar_produtos():
@@ -236,13 +227,13 @@ def novo_produto():
 @app.route('/produtos/excluir/<int:id>', methods=['POST'])
 @login_required
 def excluir_produto(id):
+    # Idealmente, verificar se o produto está em algum ItemPedido antes de excluir
     produto = db.session.get(Produto, id)
     if produto:
         db.session.delete(produto)
         db.session.commit()
         flash('Produto excluído.', 'success')
     return redirect(url_for('gerenciar_produtos'))
-
 
 if __name__ == '__main__':
     app.run(debug=True)

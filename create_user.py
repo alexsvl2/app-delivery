@@ -1,4 +1,4 @@
-# create_user.py (VERSÃO FINAL COMPLETA E CORRIGIDA)
+# create_user.py (VERSÃO FINAL E ALINHADA)
 
 import os
 from flask import Flask
@@ -16,7 +16,8 @@ app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
 
 db = SQLAlchemy(app)
 
-# --- MODELOS IDÊNTICOS AO app.py ---
+# --- MODELOS FINAIS E CORRETOS ---
+# Esta estrutura deve ser idêntica à do app.py
 class Usuario(UserMixin, db.Model):
     __tablename__ = 'delivery_usuarios'
     id = db.Column(db.Integer, primary_key=True)

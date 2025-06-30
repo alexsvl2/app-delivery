@@ -1,4 +1,4 @@
-# app.py (VERSÃO FINAL DEFINITIVA)
+# app.py (VERSÃO FINALÍSSIMA E CORRIGIDA)
 
 import os
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
@@ -35,7 +35,6 @@ class Pedido(db.Model):
     __tablename__ = 'delivery_pedidos'
     id = db.Column(db.Integer, primary_key=True)
     cliente_id = db.Column(db.Integer, db.ForeignKey('delivery_clientes.id'), nullable=False)
-    # AQUI ESTÁ A CORREÇÃO: A COLUNA ESTÁ DE VOLTA PARA COMBINAR COM O BANCO DE DADOS
     cliente_nome = db.Column(db.String(100), nullable=False) 
     cliente = db.relationship('Cliente', backref='pedidos')
     valor_entrega = db.Column(db.Numeric(10, 2), default=0.0)
@@ -94,12 +93,10 @@ def logout():
 @login_required
 def dashboard():
     hoje = date.today()
-    # A consulta foi simplificada para evitar o erro, o nome do cliente será acessado via relationship
     pedidos_do_dia = Pedido.query.filter(cast(Pedido.data_pedido, Date) == hoje).order_by(Pedido.data_pedido.desc()).all()
     clientes = Cliente.query.order_by(Cliente.nome).all()
     produtos = Produto.query.order_by(Produto.descricao).all()
     return render_template('dashboard.html', pedidos=pedidos_do_dia, clientes=clientes, produtos=produtos)
-
 
 # --- ROTAS DE PEDIDOS ---
 @app.route('/novo_pedido', methods=['POST'])
@@ -116,9 +113,10 @@ def novo_pedido():
             flash('Cliente selecionado não encontrado.', 'danger')
             return redirect(url_for('dashboard'))
 
+        # AQUI ESTÁ A CORREÇÃO: As linhas de endereço e bairro foram removidas
         novo_pedido = Pedido(
             cliente_id=cliente_id,
-            cliente_nome=cliente_selecionado.nome, # <-- AQUI ESTÁ A LÓGICA CORRETA
+            cliente_nome=cliente_selecionado.nome,
             tipo_pedido=request.form['tipo_pedido']
         )
         
@@ -246,6 +244,7 @@ def excluir_produto(id):
         db.session.commit()
         flash('Produto excluído.', 'success')
     return redirect(url_for('gerenciar_produtos'))
+
 
 if __name__ == '__main__':
     app.run(debug=True)

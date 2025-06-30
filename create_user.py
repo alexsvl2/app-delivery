@@ -1,8 +1,9 @@
-# create_user.py (VERSÃO COM CLIENTES E PRODUTOS)
+# create_user.py (VERSÃO FINAL COMPLETA)
 
 import os
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
+from flask_login import UserMixin # Importação necessária
 from werkzeug.security import generate_password_hash
 from dotenv import load_dotenv
 
@@ -15,8 +16,10 @@ app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
 
 db = SQLAlchemy(app)
 
-# --- NOVOS MODELOS ---
-class Usuario(db.Model):
+# --- MODELOS COMPLETOS ---
+
+# AQUI ESTÁ A CORREÇÃO PRINCIPAL
+class Usuario(UserMixin, db.Model):
     __tablename__ = 'delivery_usuarios'
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
@@ -25,10 +28,8 @@ class Usuario(db.Model):
 class Pedido(db.Model):
     __tablename__ = 'delivery_pedidos'
     id = db.Column(db.Integer, primary_key=True)
-    # Relação com Cliente
     cliente_id = db.Column(db.Integer, db.ForeignKey('delivery_clientes.id'), nullable=False)
     cliente = db.relationship('Cliente', backref='pedidos')
-    
     valor_entrega = db.Column(db.Numeric(10, 2), default=0.0)
     valor_total = db.Column(db.Numeric(10, 2), nullable=False)
     data_pedido = db.Column(db.DateTime, default=db.func.now())
@@ -38,15 +39,12 @@ class Pedido(db.Model):
 class ItemPedido(db.Model):
     __tablename__ = 'delivery_itens_pedido'
     id = db.Column(db.Integer, primary_key=True)
-    # Relação com Produto
     produto_id = db.Column(db.Integer, db.ForeignKey('delivery_produtos.id'), nullable=False)
-    produto_descricao = db.Column(db.String(200), nullable=False) # Armazena a descrição no momento do pedido
-    
+    produto_descricao = db.Column(db.String(200), nullable=False)
     quantidade = db.Column(db.Integer, nullable=False)
-    valor_unitario = db.Column(db.Numeric(10, 2), nullable=False) # Armazena o valor no momento do pedido
+    valor_unitario = db.Column(db.Numeric(10, 2), nullable=False)
     pedido_id = db.Column(db.Integer, db.ForeignKey('delivery_pedidos.id'), nullable=False)
 
-# NOVA TABELA DE CLIENTES
 class Cliente(db.Model):
     __tablename__ = 'delivery_clientes'
     id = db.Column(db.Integer, primary_key=True)
@@ -55,7 +53,6 @@ class Cliente(db.Model):
     endereco = db.Column(db.Text)
     bairro = db.Column(db.String(100))
 
-# NOVA TABELA DE PRODUTOS
 class Produto(db.Model):
     __tablename__ = 'delivery_produtos'
     id = db.Column(db.Integer, primary_key=True)

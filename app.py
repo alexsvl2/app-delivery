@@ -1,4 +1,4 @@
-# app.py (VERSÃO FINAL COM GESTÃO DE CLIENTES E PRODUTOS)
+# app.py (VERSÃO FINAL COMPLETA)
 
 import os
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
@@ -21,9 +21,14 @@ db = SQLAlchemy(app)
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
+login_manager.login_message = "Por favor, faça o login para acessar esta página."
+login_manager.login_message_category = "info"
+
 
 # --- MODELOS FINAIS ---
-class Usuario(db.Model):
+
+# AQUI ESTÁ A CORREÇÃO PRINCIPAL
+class Usuario(UserMixin, db.Model):
     __tablename__ = 'delivery_usuarios'
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
@@ -67,6 +72,7 @@ class Produto(db.Model):
 @login_manager.user_loader
 def load_user(user_id): return db.session.get(Usuario, int(user_id))
 
+
 # --- ROTAS DE AUTENTICAÇÃO E DASHBOARD ---
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -76,7 +82,8 @@ def login():
         if user and user.check_password(request.form.get('password')):
             login_user(user)
             return redirect(url_for('dashboard'))
-        else: flash('Usuário ou senha inválidos.', 'danger')
+        else:
+            flash('Usuário ou senha inválidos.', 'danger')
     return render_template('login.html')
 
 @app.route('/logout')
@@ -100,20 +107,47 @@ def dashboard():
 @login_required
 def novo_pedido():
     try:
-        novo_pedido = Pedido(cliente_id=request.form['cliente_id'], tipo_pedido=request.form['tipo_pedido'])
+        # A lógica para criar um novo pedido com base no formulário com clientes e produtos
+        cliente_id = request.form.get('cliente_id')
+        if not cliente_id:
+            flash('Selecione um cliente para o pedido.', 'warning')
+            return redirect(url_for('dashboard'))
+
+        novo_pedido = Pedido(
+            cliente_id=cliente_id,
+            tipo_pedido=request.form['tipo_pedido']
+        )
+        
         produto_ids = request.form.getlist('produto_id[]')
         quantidades = request.form.getlist('item_quantidade[]')
+        
+        if not produto_ids:
+            flash('Adicione pelo menos um item ao pedido.', 'warning')
+            return redirect(url_for('dashboard'))
+
         valor_total_itens = Decimal('0.0')
+
         for i in range(len(produto_ids)):
             if produto_ids[i]:
                 produto = db.session.get(Produto, int(produto_ids[i]))
-                quantidade = int(quantidades[i])
-                item = ItemPedido(produto_id=produto.id, produto_descricao=produto.descricao, quantidade=quantidade, valor_unitario=produto.valor)
-                novo_pedido.itens.append(item)
-                valor_total_itens += quantidade * produto.valor
-        valor_entrega = Decimal(request.form.get('valor_entrega', '0.0').replace(',', '.')) if novo_pedido.tipo_pedido == 'Delivery' else Decimal('0.0')
+                if produto:
+                    quantidade = int(quantidades[i])
+                    item = ItemPedido(
+                        produto_id=produto.id,
+                        produto_descricao=produto.descricao,
+                        quantidade=quantidade,
+                        valor_unitario=produto.valor
+                    )
+                    novo_pedido.itens.append(item)
+                    valor_total_itens += quantidade * produto.valor
+        
+        valor_entrega = Decimal('0.0')
+        if novo_pedido.tipo_pedido == 'Delivery':
+            valor_entrega = Decimal(request.form.get('valor_entrega', '0.0').replace(',', '.'))
+        
         novo_pedido.valor_entrega = valor_entrega
         novo_pedido.valor_total = valor_total_itens + valor_entrega
+        
         db.session.add(novo_pedido)
         db.session.commit()
         flash('Pedido cadastrado com sucesso!', 'success')
@@ -136,6 +170,8 @@ def excluir_pedido(pedido_id):
 @login_required
 def imprimir_pedido(pedido_id):
     pedido = db.session.get(Pedido, pedido_id)
+    if not pedido:
+        return "Pedido não encontrado", 404
     return render_template('imprimir_pedido.html', pedido=pedido)
 
 @app.route('/historico')
@@ -171,10 +207,10 @@ def excluir_cliente(id):
     if cliente:
         if cliente.pedidos:
             flash('Não é possível excluir um cliente que já possui pedidos.', 'warning')
-        else:
-            db.session.delete(cliente)
-            db.session.commit()
-            flash('Cliente excluído.', 'success')
+            return redirect(url_for('gerenciar_clientes'))
+        db.session.delete(cliente)
+        db.session.commit()
+        flash('Cliente excluído.', 'success')
     return redirect(url_for('gerenciar_clientes'))
 
 # --- ROTAS DE GESTÃO DE PRODUTOS ---
@@ -201,22 +237,28 @@ def novo_produto():
 @app.route('/produtos/excluir/<int:id>', methods=['POST'])
 @login_required
 def excluir_produto(id):
+    # Idealmente, verificar se o produto está em algum ItemPedido antes de excluir
     produto = db.session.get(Produto, id)
-    # Adicionar verificação se o produto está em algum pedido seria ideal aqui
     if produto:
         db.session.delete(produto)
         db.session.commit()
         flash('Produto excluído.', 'success')
     return redirect(url_for('gerenciar_produtos'))
 
-# --- ROTAS DE API (para o formulário) ---
+# --- ROTAS DE API (para o formulário dinâmico) ---
 @app.route('/api/clientes/<int:id>')
 @login_required
 def api_cliente_detalhes(id):
     cliente = db.session.get(Cliente, id)
     if cliente:
-        return jsonify({'id': cliente.id, 'nome': cliente.nome, 'endereco': cliente.endereco, 'bairro': cliente.bairro})
+        return jsonify({
+            'id': cliente.id, 
+            'nome': cliente.nome, 
+            'endereco': cliente.endereco or '', 
+            'bairro': cliente.bairro or ''
+        })
     return jsonify({'error': 'Cliente não encontrado'}), 404
+
 
 if __name__ == '__main__':
     app.run(debug=True)

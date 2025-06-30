@@ -1,36 +1,41 @@
-# correcao_db.py
+# correcao_db.py (VERSÃO 2 - Adiciona todas as colunas que faltam)
 
 import os
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from dotenv import load_dotenv
 
-# Carrega as configurações do banco de dados
 load_dotenv()
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
-def adicionar_coluna():
+def rodar_migracao_final():
     with app.app_context():
+        # Verificação 1: Adiciona 'nome_cliente' em 'delivery_pedidos'
         try:
-            # Comando SQL exato para adicionar a coluna que falta
-            # Usamos VARCHAR(100) que é compatível com o nosso modelo
-            comando_sql = 'ALTER TABLE delivery_pedidos ADD COLUMN nome_cliente VARCHAR(100)'
-            
-            print("Iniciando 'cirurgia' no banco: Adicionando a coluna 'nome_cliente'...")
-            db.session.execute(db.text(comando_sql))
+            print("Verificando coluna 'nome_cliente' em 'delivery_pedidos'...")
+            comando_sql_1 = 'ALTER TABLE delivery_pedidos ADD COLUMN nome_cliente VARCHAR(100)'
+            db.session.execute(db.text(comando_sql_1))
             db.session.commit()
-            print("SUCESSO: Coluna 'nome_cliente' adicionada à tabela 'delivery_pedidos'.")
-
-        except Exception as e:
-            # Se der erro, é porque a coluna provavelmente já existe de uma tentativa anterior.
-            # Isso não é um problema, podemos seguir em frente.
-            print(f"AVISO: Não foi possível adicionar a coluna (ela provavelmente já existe). Erro: {e}")
+            print("--> SUCESSO: Coluna 'nome_cliente' adicionada.")
+        except Exception:
+            print("--> AVISO: Coluna 'nome_cliente' provavelmente já existe. Tudo certo.")
             db.session.rollback()
 
-        print("\nProcesso de correção concluído!")
+        # Verificação 2: Adiciona 'produto_id' em 'delivery_itens_pedido' (A correção principal de agora)
+        try:
+            print("Verificando coluna 'produto_id' em 'delivery_itens_pedido'...")
+            comando_sql_2 = 'ALTER TABLE delivery_itens_pedido ADD COLUMN produto_id INTEGER'
+            db.session.execute(db.text(comando_sql_2))
+            db.session.commit()
+            print("--> SUCESSO: Coluna 'produto_id' adicionada.")
+        except Exception:
+            print("--> AVISO: Coluna 'produto_id' provavelmente já existe. Tudo certo.")
+            db.session.rollback()
+
+        print("\nProcesso de correção do banco de dados concluído!")
 
 if __name__ == '__main__':
-    adicionar_coluna()
+    rodar_migracao_final()

@@ -71,7 +71,8 @@
 </div>
 
 <div class="modal fade" id="novoPedidoModal" tabindex="-1" aria-labelledby="novoPedidoModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-xl"> <div class="modal-content">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title" id="novoPedidoModalLabel">Cadastrar Novo Pedido</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -79,51 +80,23 @@
             <form id="form-novo-pedido" action="{{ url_for('novo_pedido') }}" method="POST">
                 <div class="modal-body">
                     <div class="row mb-3">
-                        <div class="col-md-7">
-                            <label class="form-label">Nome do Cliente</label>
-                            <input type="text" class="form-control" name="nome_cliente" required>
-                        </div>
-                        <div class="col-md-5">
-                            <label class="form-label">Tipo</label>
-                            <select class="form-select" name="tipo_pedido" onchange="toggleDeliveryFieldsModal(this.value)">
-                                <option value="Retirada" selected>Retirada no Balcão</option>
-                                <option value="Delivery">Delivery</option>
-                            </select>
-                        </div>
+                        <div class="col-md-7"><label class="form-label">Nome do Cliente</label><input type="text" class="form-control" name="nome_cliente" required></div>
+                        <div class="col-md-5"><label class="form-label">Tipo</label><select class="form-select" name="tipo_pedido" onchange="toggleDeliveryFieldsModal(this.value)"><option value="Retirada" selected>Retirada no Balcão</option><option value="Delivery">Delivery</option></select></div>
                     </div>
                     <div class="row mb-3" id="delivery-fields-modal" style="display: none;">
-                        <div class="col-md-8">
-                            <label class="form-label">Endereço</label>
-                            <input type="text" class="form-control" name="endereco">
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label">Bairro</label>
-                            <input type="text" class="form-control" name="bairro">
-                        </div>
+                        <div class="col-md-8"><label class="form-label">Endereço</label><input type="text" class="form-control" name="endereco"></div>
+                        <div class="col-md-4"><label class="form-label">Bairro</label><input type="text" class="form-control" name="bairro"></div>
                     </div>
                     <hr>
                     <h5>Itens do Pedido</h5>
-                    <div id="itens-container">
-                        </div>
+                    <div id="itens-container"></div>
                     <button type="button" class="btn btn-outline-primary btn-sm mt-2" id="add-item-btn">Adicionar Item</button>
                     <hr>
                     <div class="row mt-3 align-items-center">
                         <div class="col-md-6" id="delivery-fee-modal" style="display: none;">
-                            <div class="row">
-                                <label class="col-sm-5 col-form-label">Taxa de Entrega (R$)</label>
-                                <div class="col-sm-7">
-                                    <input type="text" class="form-control" name="valor_entrega" value="0,00" oninput="updateTotals()">
-                                </div>
-                            </div>
+                            <div class="row"><label class="col-sm-5 col-form-label">Taxa de Entrega (R$)</label><div class="col-sm-7"><input type="text" class="form-control" name="valor_entrega" value="0,00"></div></div>
                         </div>
-                        <div class="col-md-6 ms-auto">
-                            <div class="row">
-                                <label class="col-sm-5 col-form-label fs-5 fw-bold">TOTAL (R$)</label>
-                                <div class="col-sm-7">
-                                    <input type="text" class="form-control fs-5 fw-bold" id="grand-total" readonly>
-                                </div>
-                            </div>
-                        </div>
+                        <div class="col-md-6 ms-auto"><div class="row"><label class="col-sm-5 col-form-label fs-5 fw-bold">TOTAL (R$)</label><div class="col-sm-7"><input type="text" class="form-control fs-5 fw-bold" id="grand-total" readonly></div></div></div>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -150,39 +123,36 @@ document.addEventListener('DOMContentLoaded', function() {
     const addItemBtn = document.getElementById('add-item-btn');
     const itensContainer = document.getElementById('itens-container');
     const template = document.getElementById('item-row-template');
+    const deliveryFeeInput = document.querySelector('[name="valor_entrega"]');
 
-    // Função para adicionar uma nova linha de item
     function addNewItemRow() {
         const clone = template.content.cloneNode(true);
         itensContainer.appendChild(clone);
         attachRowEventListeners(itensContainer.lastElementChild);
     }
-
-    // Adiciona a primeira linha ao carregar
-    addNewItemRow(); 
     
-    // Adiciona nova linha ao clicar no botão
+    addNewItemRow();
     addItemBtn.addEventListener('click', addNewItemRow);
+    deliveryFeeInput.addEventListener('input', updateTotals);
+    // MUDANÇA: Adiciona o formatador ao campo de taxa de entrega
+    deliveryFeeInput.addEventListener('blur', (e) => formatCurrencyInput(e.target));
 
-    // Função para adicionar "escutadores" de eventos a uma linha
+
     function attachRowEventListeners(row) {
         row.querySelector('.remove-item-btn').addEventListener('click', function() {
             row.remove();
             updateTotals();
         });
-        row.querySelectorAll('.item-quantidade, .item-valor-unitario').forEach(input => {
-            input.addEventListener('input', updateTotals);
-        });
-    }
+        
+        const inputsToUpdate = row.querySelectorAll('.item-quantidade, .item-valor-unitario');
+        inputsToUpdate.forEach(input => input.addEventListener('input', updateTotals));
 
-    // Inicializa "escutadores" para a primeira linha (se houver)
-    const firstRow = itensContainer.querySelector('.item-row');
-    if (firstRow) {
-        attachRowEventListeners(firstRow);
+        // MUDANÇA: Adiciona o formatador ao campo de valor unitário da linha
+        const valorUnitarioInput = row.querySelector('.item-valor-unitario');
+        valorUnitarioInput.addEventListener('blur', (e) => formatCurrencyInput(e.target));
     }
 });
 
-// Função para mostrar/ocultar campos de delivery NO MODAL
 function toggleDeliveryFieldsModal(value) {
     const deliveryFields = document.getElementById('delivery-fields-modal');
     const deliveryFee = document.getElementById('delivery-fee-modal');
@@ -197,7 +167,6 @@ function toggleDeliveryFieldsModal(value) {
     updateTotals();
 }
 
-// Função global para atualizar todos os totais
 function updateTotals() {
     let grandTotal = 0;
     document.querySelectorAll('#itens-container .item-row').forEach(row => {
@@ -212,6 +181,18 @@ function updateTotals() {
     grandTotal += deliveryFee;
 
     document.getElementById('grand-total').value = grandTotal.toFixed(2).replace('.', ',');
+}
+
+// MUDANÇA: Nova função para formatar campos de moeda
+function formatCurrencyInput(inputElement) {
+    let value = inputElement.value;
+    // Permite digitar vírgula e a trata como ponto
+    value = value.replace(',', '.');
+    // Remove tudo que não for dígito ou o primeiro ponto
+    value = value.replace(/[^\d.]/g, '');
+
+    let numberValue = parseFloat(value) || 0;
+    inputElement.value = numberValue.toFixed(2).replace('.', ',');
 }
 </script>
 {% endblock %}

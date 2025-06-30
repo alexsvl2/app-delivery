@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Gestão de Clientes</h1>
+    <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">Voltar ao Painel</a>
+</div>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+        {% for category, message in messages %}
+            <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+{% endwith %}
+
+<div class="card mb-4">
+    <div class="card-header">Cadastrar Novo Cliente</div>
+    <div class="card-body">
+        <form action="{{ url_for('novo_cliente') }}" method="POST">
+            <div class="row g-3">
+                <div class="col-md-6"><label class="form-label">Nome</label><input type="text" name="nome" class="form-control" required></div>
+                <div class="col-md-6"><label class="form-label">Telefone</label><input type="text" name="telefone" class="form-control"></div>
+                <div class="col-md-8"><label class="form-label">Endereço</label><input type="text" name="endereco" class="form-control"></div>
+                <div class="col-md-4"><label class="form-label">Bairro</label><input type="text" name="bairro" class="form-control"></div>
+                <div class="col-12"><button type="submit" class="btn btn-primary">Salvar Cliente</button></div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">Clientes Cadastrados</div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-striped">
+                <thead><tr><th>Nome</th><th>Telefone</th><th>Endereço</th><th>Ações</th></tr></thead>
+                <tbody>
+                    {% for cliente in clientes %}
+                    <tr>
+                        <td>{{ cliente.nome }}</td>
+                        <td>{{ cliente.telefone }}</td>
+                        <td>{{ cliente.endereco }}, {{ cliente.bairro }}</td>
+                        <td>
+                            <form action="{{ url_for('excluir_cliente', id=cliente.id) }}" method="POST" onsubmit="return confirm('Excluir cliente? Esta ação não pode ser desfeita.');">
+                                <button type="submit" class="btn btn-sm btn-danger">Excluir</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="4" class="text-center">Nenhum cliente cadastrado.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

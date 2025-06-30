@@ -4,7 +4,9 @@
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h1>Painel de Pedidos</h1>
     <div>
-        <a href="{{ url_for('historico') }}" class="btn btn-outline-info">Histórico de Pedidos</a>
+        <a href="{{ url_for('gerenciar_clientes') }}" class="btn btn-info">Cadastrar Clientes</a>
+        <a href="{{ url_for('gerenciar_produtos') }}" class="btn btn-info">Cadastrar Produtos</a>
+        <a href="{{ url_for('historico') }}" class="btn btn-outline-secondary">Histórico</a>
         <a href="{{ url_for('logout') }}" class="btn btn-danger">Sair</a>
     </div>
 </div>
@@ -43,11 +45,11 @@
             {% for pedido in pedidos %}
             <tr>
                 <td>{{ pedido.id }}</td>
-                <td>{{ pedido.nome_cliente }} <br><small class="text-muted">{{pedido.tipo_pedido}}</small></td>
+                <td>{{ pedido.cliente.nome }} <br><small class="text-muted">{{pedido.tipo_pedido}}</small></td>
                 <td>
                     <ul class="list-unstyled mb-0 small">
                         {% for item in pedido.itens %}
-                        <li>{{ item.quantidade }}x {{ item.descricao }}</li>
+                        <li>{{ item.quantidade }}x {{ item.produto_descricao }}</li>
                         {% endfor %}
                     </ul>
                 </td>
@@ -55,47 +57,60 @@
                 <td>{{ pedido.data_pedido.strftime('%H:%M') }}</td>
                 <td>
                     <a href="{{ url_for('imprimir_pedido', pedido_id=pedido.id) }}" class="btn btn-sm btn-secondary" target="_blank" title="Imprimir">🖨️</a>
-                    <a href="{{ url_for('editar_pedido', pedido_id=pedido.id) }}" class="btn btn-sm btn-warning" title="Editar">✏️</a>
                     <form action="{{ url_for('excluir_pedido', pedido_id=pedido.id) }}" method="POST" style="display: inline;" onsubmit="return confirm('Tem certeza que deseja excluir este pedido?');">
                         <button type="submit" class="btn btn-sm btn-danger" title="Excluir">🗑️</button>
                     </form>
                 </td>
             </tr>
             {% else %}
-            <tr>
-                <td colspan="6" class="text-center">Nenhum pedido hoje ainda.</td>
-            </tr>
+            <tr><td colspan="6" class="text-center">Nenhum pedido hoje ainda.</td></tr>
             {% endfor %}
         </tbody>
     </table>
 </div>
 
-<div class="modal fade" id="novoPedidoModal" tabindex="-1" aria-labelledby="novoPedidoModalLabel" aria-hidden="true">
+<div class="modal fade" id="novoPedidoModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-xl">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="novoPedidoModalLabel">Cadastrar Novo Pedido</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <h5 class="modal-title">Cadastrar Novo Pedido</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <form id="form-novo-pedido" action="{{ url_for('novo_pedido') }}" method="POST">
                 <div class="modal-body">
                     <div class="row mb-3">
-                        <div class="col-md-7"><label class="form-label">Nome do Cliente</label><input type="text" class="form-control" name="nome_cliente" required></div>
+                        <div class="col-md-7">
+                            <label class="form-label">Cliente</label>
+                            <select class="form-select" name="cliente_id" id="select-cliente" required onchange="selecionarCliente(this.value)">
+                                <option value="" selected disabled>Selecione um cliente...</option>
+                                {% for cliente in clientes %}
+                                <option value="{{ cliente.id }}" data-endereco="{{ cliente.endereco or '' }}" data-bairro="{{ cliente.bairro or '' }}">{{ cliente.nome }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
                         <div class="col-md-5"><label class="form-label">Tipo</label><select class="form-select" name="tipo_pedido" onchange="toggleDeliveryFieldsModal(this.value)"><option value="Retirada" selected>Retirada no Balcão</option><option value="Delivery">Delivery</option></select></div>
                     </div>
                     <div class="row mb-3" id="delivery-fields-modal" style="display: none;">
-                        <div class="col-md-8"><label class="form-label">Endereço</label><input type="text" class="form-control" name="endereco"></div>
-                        <div class="col-md-4"><label class="form-label">Bairro</label><input type="text" class="form-control" name="bairro"></div>
+                        <div class="col-md-8"><label class="form-label">Endereço</label><input type="text" class="form-control" name="endereco" id="cliente-endereco"></div>
+                        <div class="col-md-4"><label class="form-label">Bairro</label><input type="text" class="form-control" name="bairro" id="cliente-bairro"></div>
                     </div>
                     <hr>
                     <h5>Itens do Pedido</h5>
+                    <div class="row mb-3">
+                        <div class="col-md-7">
+                            <select id="select-produto" class="form-select">
+                                <option value="" selected disabled>Selecione um produto para adicionar...</option>
+                                {% for produto in produtos %}
+                                <option value="{{ produto.id }}" data-valor="{{ produto.valor }}">{{ produto.descricao }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-5"><button type="button" class="btn btn-outline-primary" id="add-item-btn">Adicionar Produto Selecionado</button></div>
+                    </div>
                     <div id="itens-container"></div>
-                    <button type="button" class="btn btn-outline-primary btn-sm mt-2" id="add-item-btn">Adicionar Item</button>
                     <hr>
                     <div class="row mt-3 align-items-center">
-                        <div class="col-md-6" id="delivery-fee-modal" style="display: none;">
-                            <div class="row"><label class="col-sm-5 col-form-label">Taxa de Entrega (R$)</label><div class="col-sm-7"><input type="text" class="form-control" name="valor_entrega" value="0,00"></div></div>
-                        </div>
+                        <div class="col-md-6" id="delivery-fee-modal" style="display: none;"><div class="row"><label class="col-sm-5 col-form-label">Taxa de Entrega (R$)</label><div class="col-sm-7"><input type="text" class="form-control" name="valor_entrega" value="0,00" oninput="updateTotals()"></div></div></div>
                         <div class="col-md-6 ms-auto"><div class="row"><label class="col-sm-5 col-form-label fs-5 fw-bold">TOTAL (R$)</label><div class="col-sm-7"><input type="text" class="form-control fs-5 fw-bold" id="grand-total" readonly></div></div></div>
                     </div>
                 </div>
@@ -110,89 +125,16 @@
 
 <template id="item-row-template">
     <div class="row g-2 mb-2 align-items-center item-row">
-        <div class="col-md-5"><input type="text" class="form-control item-descricao" name="item_descricao[]" placeholder="Descrição do Item" required></div>
-        <div class="col-md-2"><input type="number" class="form-control item-quantidade" name="item_quantidade[]" value="1" min="1" placeholder="Qtd" required></div>
-        <div class="col-md-2"><input type="text" class="form-control item-valor-unitario" name="item_valor_unitario[]" placeholder="Valor Unit." required></div>
+        <input type="hidden" class="item-produto-id" name="produto_id[]">
+        <div class="col-md-5"><input type="text" class="form-control item-descricao" readonly></div>
+        <div class="col-md-2"><input type="number" class="form-control item-quantidade" name="item_quantidade[]" value="1" min="1" required></div>
+        <div class="col-md-2"><input type="text" class="form-control item-valor-unitario" readonly></div>
         <div class="col-md-2"><input type="text" class="form-control item-total" readonly></div>
         <div class="col-md-1"><button type="button" class="btn btn-danger btn-sm remove-item-btn">X</button></div>
     </div>
 </template>
 
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    const addItemBtn = document.getElementById('add-item-btn');
-    const itensContainer = document.getElementById('itens-container');
-    const template = document.getElementById('item-row-template');
-    const deliveryFeeInput = document.querySelector('[name="valor_entrega"]');
-
-    function addNewItemRow() {
-        const clone = template.content.cloneNode(true);
-        itensContainer.appendChild(clone);
-        attachRowEventListeners(itensContainer.lastElementChild);
-    }
-    
-    addNewItemRow();
-    addItemBtn.addEventListener('click', addNewItemRow);
-    deliveryFeeInput.addEventListener('input', updateTotals);
-    // MUDANÇA: Adiciona o formatador ao campo de taxa de entrega
-    deliveryFeeInput.addEventListener('blur', (e) => formatCurrencyInput(e.target));
-
-
-    function attachRowEventListeners(row) {
-        row.querySelector('.remove-item-btn').addEventListener('click', function() {
-            row.remove();
-            updateTotals();
-        });
-        
-        const inputsToUpdate = row.querySelectorAll('.item-quantidade, .item-valor-unitario');
-        inputsToUpdate.forEach(input => input.addEventListener('input', updateTotals));
-
-        // MUDANÇA: Adiciona o formatador ao campo de valor unitário da linha
-        const valorUnitarioInput = row.querySelector('.item-valor-unitario');
-        valorUnitarioInput.addEventListener('blur', (e) => formatCurrencyInput(e.target));
-    }
-});
-
-function toggleDeliveryFieldsModal(value) {
-    const deliveryFields = document.getElementById('delivery-fields-modal');
-    const deliveryFee = document.getElementById('delivery-fee-modal');
-    if (value === 'Delivery') {
-        deliveryFields.style.display = 'flex';
-        deliveryFee.style.display = 'block';
-    } else {
-        deliveryFields.style.display = 'none';
-        deliveryFee.style.display = 'none';
-        deliveryFee.querySelector('input').value = '0,00';
-    }
-    updateTotals();
-}
-
-function updateTotals() {
-    let grandTotal = 0;
-    document.querySelectorAll('#itens-container .item-row').forEach(row => {
-        const qty = parseFloat(row.querySelector('.item-quantidade').value) || 0;
-        const price = parseFloat(row.querySelector('.item-valor-unitario').value.replace(',', '.')) || 0;
-        const itemTotal = qty * price;
-        row.querySelector('.item-total').value = itemTotal.toFixed(2).replace('.', ',');
-        grandTotal += itemTotal;
-    });
-
-    const deliveryFee = parseFloat(document.querySelector('[name="valor_entrega"]').value.replace(',', '.')) || 0;
-    grandTotal += deliveryFee;
-
-    document.getElementById('grand-total').value = grandTotal.toFixed(2).replace('.', ',');
-}
-
-// MUDANÇA: Nova função para formatar campos de moeda
-function formatCurrencyInput(inputElement) {
-    let value = inputElement.value;
-    // Permite digitar vírgula e a trata como ponto
-    value = value.replace(',', '.');
-    // Remove tudo que não for dígito ou o primeiro ponto
-    value = value.replace(/[^\d.]/g, '');
-
-    let numberValue = parseFloat(value) || 0;
-    inputElement.value = numberValue.toFixed(2).replace('.', ',');
-}
+// JavaScript para o Modal
 </script>
 {% endblock %}

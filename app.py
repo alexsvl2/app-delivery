@@ -1,4 +1,4 @@
-# app.py (VERSÃO FINAL, AGORA CORRIGIDA)
+# app.py (VERSÃO FINAL COM A ÚLTIMA CORREÇÃO)
 
 import os
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
@@ -35,11 +35,8 @@ class Pedido(db.Model):
     __tablename__ = 'delivery_pedidos'
     id = db.Column(db.Integer, primary_key=True)
     cliente_id = db.Column(db.Integer, db.ForeignKey('delivery_clientes.id'), nullable=False)
-    cliente_nome = db.Column(db.String(100), nullable=False)
     cliente = db.relationship('Cliente', backref='pedidos')
-    # OS CAMPOS ABAIXO FORAM REMOVIDOS DESTA CLASSE, POIS PERTENCEM AO CLIENTE
-    # endereco = db.Column(db.Text) 
-    # bairro = db.Column(db.String(100))
+    # A COLUNA 'cliente_nome' FOI REMOVIDA DAQUI PARA ALINHAR COM O BANCO DE DADOS
     valor_entrega = db.Column(db.Numeric(10, 2), default=0.0)
     valor_total = db.Column(db.Numeric(10, 2), nullable=False)
     data_pedido = db.Column(db.DateTime, default=db.func.now())
@@ -60,8 +57,8 @@ class Cliente(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     nome = db.Column(db.String(100), nullable=False, unique=True)
     telefone = db.Column(db.String(20))
-    endereco = db.Column(db.Text) # O lugar correto é aqui
-    bairro = db.Column(db.String(100)) # O lugar correto é aqui
+    endereco = db.Column(db.Text)
+    bairro = db.Column(db.String(100))
 
 class Produto(db.Model):
     __tablename__ = 'delivery_produtos'
@@ -96,10 +93,11 @@ def logout():
 @login_required
 def dashboard():
     hoje = date.today()
-    pedidos_do_dia = Pedido.query.order_by(Pedido.data_pedido.desc()).filter(cast(Pedido.data_pedido, Date) == hoje).all()
+    pedidos_do_dia = Pedido.query.filter(cast(Pedido.data_pedido, Date) == hoje).order_by(Pedido.data_pedido.desc()).all()
     clientes = Cliente.query.order_by(Cliente.nome).all()
     produtos = Produto.query.order_by(Produto.descricao).all()
     return render_template('dashboard.html', pedidos=pedidos_do_dia, clientes=clientes, produtos=produtos)
+
 
 # --- ROTAS DE PEDIDOS ---
 @app.route('/novo_pedido', methods=['POST'])
@@ -111,14 +109,8 @@ def novo_pedido():
             flash('Selecione um cliente para o pedido.', 'warning')
             return redirect(url_for('dashboard'))
 
-        cliente_selecionado = db.session.get(Cliente, int(cliente_id))
-        if not cliente_selecionado:
-            flash('Cliente selecionado não encontrado.', 'danger')
-            return redirect(url_for('dashboard'))
-
         novo_pedido = Pedido(
             cliente_id=cliente_id,
-            cliente_nome=cliente_selecionado.nome,
             tipo_pedido=request.form['tipo_pedido']
         )
         
@@ -176,7 +168,14 @@ def imprimir_pedido(pedido_id):
     pedido = db.session.get(Pedido, pedido_id)
     if not pedido:
         return "Pedido não encontrado", 404
-    return render_template('imprimir_pedido.html', pedido=pedido)
+    # Buscando o endereço do cliente associado para a impressão
+    if pedido.tipo_pedido == 'Delivery' and pedido.cliente:
+        endereco_impressao = pedido.cliente.endereco
+        bairro_impressao = pedido.cliente.bairro
+    else:
+        endereco_impressao = ""
+        bairro_impressao = ""
+    return render_template('imprimir_pedido.html', pedido=pedido, endereco_impressao=endereco_impressao, bairro_impressao=bairro_impressao)
 
 @app.route('/historico')
 @login_required

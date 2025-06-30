@@ -1,4 +1,4 @@
-# app.py (VERSÃO FINAL COMPLETA E CORRIGIDA)
+# app.py (VERSÃO FINAL, AGORA CORRIGIDA)
 
 import os
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
@@ -21,11 +21,9 @@ db = SQLAlchemy(app)
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
-login_manager.login_message = "Por favor, faça o login para acessar esta página."
-login_manager.login_message_category = "info"
 
 
-# --- MODELOS FINAIS ---
+# --- MODELOS ---
 class Usuario(UserMixin, db.Model):
     __tablename__ = 'delivery_usuarios'
     id = db.Column(db.Integer, primary_key=True)
@@ -37,10 +35,11 @@ class Pedido(db.Model):
     __tablename__ = 'delivery_pedidos'
     id = db.Column(db.Integer, primary_key=True)
     cliente_id = db.Column(db.Integer, db.ForeignKey('delivery_clientes.id'), nullable=False)
-    cliente_nome = db.Column(db.String(100), nullable=False) # Campo que causou o erro
+    cliente_nome = db.Column(db.String(100), nullable=False)
     cliente = db.relationship('Cliente', backref='pedidos')
-    endereco = db.Column(db.Text)
-    bairro = db.Column(db.String(100))
+    # OS CAMPOS ABAIXO FORAM REMOVIDOS DESTA CLASSE, POIS PERTENCEM AO CLIENTE
+    # endereco = db.Column(db.Text) 
+    # bairro = db.Column(db.String(100))
     valor_entrega = db.Column(db.Numeric(10, 2), default=0.0)
     valor_total = db.Column(db.Numeric(10, 2), nullable=False)
     data_pedido = db.Column(db.DateTime, default=db.func.now())
@@ -61,8 +60,8 @@ class Cliente(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     nome = db.Column(db.String(100), nullable=False, unique=True)
     telefone = db.Column(db.String(20))
-    endereco = db.Column(db.Text)
-    bairro = db.Column(db.String(100))
+    endereco = db.Column(db.Text) # O lugar correto é aqui
+    bairro = db.Column(db.String(100)) # O lugar correto é aqui
 
 class Produto(db.Model):
     __tablename__ = 'delivery_produtos'
@@ -97,7 +96,7 @@ def logout():
 @login_required
 def dashboard():
     hoje = date.today()
-    pedidos_do_dia = Pedido.query.filter(cast(Pedido.data_pedido, Date) == hoje).order_by(Pedido.data_pedido.desc()).all()
+    pedidos_do_dia = Pedido.query.order_by(Pedido.data_pedido.desc()).filter(cast(Pedido.data_pedido, Date) == hoje).all()
     clientes = Cliente.query.order_by(Cliente.nome).all()
     produtos = Produto.query.order_by(Produto.descricao).all()
     return render_template('dashboard.html', pedidos=pedidos_do_dia, clientes=clientes, produtos=produtos)
@@ -119,10 +118,8 @@ def novo_pedido():
 
         novo_pedido = Pedido(
             cliente_id=cliente_id,
-            cliente_nome=cliente_selecionado.nome, # <-- CORREÇÃO PRINCIPAL
-            tipo_pedido=request.form['tipo_pedido'],
-            endereco=request.form.get('endereco'),
-            bairro=request.form.get('bairro')
+            cliente_nome=cliente_selecionado.nome,
+            tipo_pedido=request.form['tipo_pedido']
         )
         
         produto_ids = request.form.getlist('produto_id[]')
@@ -231,7 +228,7 @@ def gerenciar_produtos():
 @login_required
 def novo_produto():
     try:
-        valor = Decimal(request.form['valor'].replace(',', '.'))
+        valor = Decimal(request.form.get('valor', '0.0').replace(',', '.'))
         novo = Produto(descricao=request.form['descricao'], valor=valor)
         db.session.add(novo)
         db.session.commit()
@@ -244,8 +241,8 @@ def novo_produto():
 @app.route('/produtos/excluir/<int:id>', methods=['POST'])
 @login_required
 def excluir_produto(id):
+    # Idealmente, verificar se o produto está em algum ItemPedido antes de excluir
     produto = db.session.get(Produto, id)
-    # Adicionar verificação se o produto está em algum ItemPedido seria ideal aqui
     if produto:
         db.session.delete(produto)
         db.session.commit()

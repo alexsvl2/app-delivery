@@ -1,4 +1,4 @@
-# create_user.py (VERSÃO FINALÍSSIMA E CORRIGIDA)
+# create_user.py (VERSÃO FINAL COMPLETA E CORRIGIDA)
 
 import os
 from flask import Flask
@@ -27,8 +27,7 @@ class Pedido(db.Model):
     __tablename__ = 'delivery_pedidos'
     id = db.Column(db.Integer, primary_key=True)
     cliente_id = db.Column(db.Integer, db.ForeignKey('delivery_clientes.id'), nullable=False)
-    # AQUI ESTÁ A CORREÇÃO: A COLUNA QUE FALTAVA FOI ADICIONADA
-    cliente_nome = db.Column(db.String(100), nullable=False)
+    nome_cliente = db.Column(db.String(100), nullable=False)
     cliente = db.relationship('Cliente', backref='pedidos')
     valor_entrega = db.Column(db.Numeric(10, 2), default=0.0)
     valor_total = db.Column(db.Numeric(10, 2), nullable=False)

@@ -1,4 +1,4 @@
-# app.py (VERSÃO FINAL, COMPLETA E CORRIGIDA)
+# app.py (VERSÃO 100% COMPLETA E CORRIGIDA)
 
 import os
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
@@ -25,22 +25,19 @@ login_manager.login_message = "Por favor, faça o login para acessar esta págin
 login_manager.login_message_category = "info"
 
 
-# --- MODELOS FINAIS E ALINHADOS ---
+# --- MODELOS FINAIS E CORRETOS ---
 class Usuario(UserMixin, db.Model):
     __tablename__ = 'delivery_usuarios'
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
     password_hash = db.Column(db.String(255), nullable=False)
-    def set_password(self, password):
-        self.password_hash = generate_password_hash(password)
-    def check_password(self, password): 
-        return check_password_hash(self.password_hash, password)
+    def check_password(self, password): return check_password_hash(self.password_hash, password)
 
 class Pedido(db.Model):
     __tablename__ = 'delivery_pedidos'
     id = db.Column(db.Integer, primary_key=True)
     cliente_id = db.Column(db.Integer, db.ForeignKey('delivery_clientes.id'), nullable=False)
-    cliente_nome = db.Column(db.String(100), nullable=False)
+    nome_cliente = db.Column(db.String(100), nullable=False)
     cliente = db.relationship('Cliente', backref='pedidos')
     valor_entrega = db.Column(db.Numeric(10, 2), default=0.0)
     valor_total = db.Column(db.Numeric(10, 2), nullable=False)
@@ -103,7 +100,6 @@ def dashboard():
     produtos = Produto.query.order_by(Produto.descricao).all()
     return render_template('dashboard.html', pedidos=pedidos_do_dia, clientes=clientes, produtos=produtos)
 
-
 # --- ROTAS DE PEDIDOS ---
 @app.route('/novo_pedido', methods=['POST'])
 @login_required
@@ -111,17 +107,15 @@ def novo_pedido():
     try:
         cliente_id = request.form.get('cliente_id')
         if not cliente_id:
-            flash('Selecione um cliente para o pedido.', 'warning')
-            return redirect(url_for('dashboard'))
+            flash('Selecione um cliente para o pedido.', 'warning'); return redirect(url_for('dashboard'))
 
         cliente_selecionado = db.session.get(Cliente, int(cliente_id))
         if not cliente_selecionado:
-            flash('Cliente selecionado não encontrado.', 'danger')
-            return redirect(url_for('dashboard'))
+            flash('Cliente selecionado não encontrado.', 'danger'); return redirect(url_for('dashboard'))
 
         novo_pedido = Pedido(
             cliente_id=cliente_id,
-            cliente_nome=cliente_selecionado.nome,
+            nome_cliente=cliente_selecionado.nome,
             tipo_pedido=request.form['tipo_pedido']
         )
         
@@ -129,8 +123,7 @@ def novo_pedido():
         quantidades = request.form.getlist('item_quantidade[]')
         
         if not produto_ids:
-            flash('Adicione pelo menos um item ao pedido.', 'warning')
-            return redirect(url_for('dashboard'))
+            flash('Adicione pelo menos um item ao pedido.', 'warning'); return redirect(url_for('dashboard'))
 
         valor_total_itens = Decimal('0.0')
 
@@ -243,7 +236,6 @@ def novo_produto():
 @app.route('/produtos/excluir/<int:id>', methods=['POST'])
 @login_required
 def excluir_produto(id):
-    # Idealmente, verificar se o produto está em algum ItemPedido antes de excluir
     produto = db.session.get(Produto, id)
     if produto:
         db.session.delete(produto)

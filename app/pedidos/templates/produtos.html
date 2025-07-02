@@ -2,8 +2,8 @@
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <h1>Gestão de Produtos</h1>
-    <a href="{{ url_for('pedidos.dashboard') }}" class="btn btn-secondary">Voltar ao Painel</a>
+    <h1 class="h2">Gestão de Produtos</h1>
+    <a href="{{ url_for('pedidos.dashboard') }}" class="btn btn-outline-secondary">Voltar ao Painel de Pedidos</a>
 </div>
 
 {% with messages = get_flashed_messages(with_categories=true) %}

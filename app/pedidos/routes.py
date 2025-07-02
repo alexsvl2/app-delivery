@@ -1,21 +1,17 @@
 # app/pedidos/routes.py
 
-from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
+from flask import Blueprint, render_template, request, redirect, url_for, flash
 from flask_login import login_required
-from app.models import db, Pedido, ItemPedido, Cliente, Produto # Importa do models.py central
+from app.models import db, Pedido, Cliente, Produto, ItemPedido
 from datetime import date
 from sqlalchemy import cast, Date
 from decimal import Decimal
 
 # Criação do Blueprint de Pedidos
-# O primeiro argumento 'pedidos' é o nome do blueprint
-# O segundo, __name__, é padrão
-# template_folder='templates' diz que os HTMLs deste blueprint estarão em uma subpasta 'templates'
 pedidos_bp = Blueprint('pedidos', __name__, template_folder='templates')
 
 
 # --- ROTAS DE PEDIDOS (agora dentro do Blueprint) ---
-# Note que @app.route vira @pedidos_bp.route
 
 @pedidos_bp.route('/dashboard')
 @login_required
@@ -24,9 +20,7 @@ def dashboard():
     pedidos_do_dia = Pedido.query.filter(cast(Pedido.data_pedido, Date) == hoje).order_by(Pedido.data_pedido.desc()).all()
     clientes = Cliente.query.order_by(Cliente.nome).all()
     produtos = Produto.query.order_by(Produto.descricao).all()
-    # O render_template agora procura dentro da pasta de templates deste blueprint
-    return render_template('pedidos/dashboard.html', pedidos=pedidos_do_dia, clientes=clientes, produtos=produtos)
-
+    return render_template('dashboard.html', pedidos=pedidos_do_dia, clientes=clientes, produtos=produtos)
 
 @pedidos_bp.route('/novo', methods=['POST'])
 @login_required
@@ -35,7 +29,7 @@ def novo_pedido():
         cliente_id = request.form.get('cliente_id')
         if not cliente_id:
             flash('Selecione um cliente para o pedido.', 'warning')
-            return redirect(url_for('pedidos.dashboard')) # url_for agora usa 'blueprint.função'
+            return redirect(url_for('pedidos.dashboard'))
 
         cliente_selecionado = db.session.get(Cliente, int(cliente_id))
         if not cliente_selecionado:
@@ -105,14 +99,14 @@ def imprimir_pedido(pedido_id):
     pedido = db.session.get(Pedido, pedido_id)
     if not pedido:
         return "Pedido não encontrado", 404
-    return render_template('pedidos/imprimir_pedido.html', pedido=pedido)
+    return render_template('imprimir_pedido.html', pedido=pedido)
 
 
 @pedidos_bp.route('/historico')
 @login_required
 def historico():
     pedidos = Pedido.query.order_by(Pedido.data_pedido.desc()).all()
-    return render_template('pedidos/historico.html', pedidos=pedidos)
+    return render_template('historico.html', pedidos=pedidos)
 
 
 # --- ROTAS DE GESTÃO DE CLIENTES ---
@@ -120,7 +114,7 @@ def historico():
 @login_required
 def gerenciar_clientes():
     clientes = Cliente.query.order_by(Cliente.nome).all()
-    return render_template('pedidos/clientes.html', clientes=clientes)
+    return render_template('clientes.html', clientes=clientes)
 
 @pedidos_bp.route('/clientes/novo', methods=['POST'])
 @login_required
@@ -153,7 +147,7 @@ def excluir_cliente(id):
 @login_required
 def gerenciar_produtos():
     produtos = Produto.query.order_by(Produto.descricao).all()
-    return render_template('pedidos/produtos.html', produtos=produtos)
+    return render_template('produtos.html', produtos=produtos)
 
 @pedidos_bp.route('/produtos/novo', methods=['POST'])
 @login_required
@@ -172,6 +166,7 @@ def novo_produto():
 @pedidos_bp.route('/produtos/excluir/<int:id>', methods=['POST'])
 @login_required
 def excluir_produto(id):
+    # Idealmente, verificar se o produto está em algum ItemPedido antes de excluir
     produto = db.session.get(Produto, id)
     if produto:
         db.session.delete(produto)

@@ -1,80 +1,29 @@
-# create_user.py (VERSÃO FINAL E ALINHADA)
+# create_user.py (versão para a nova estrutura)
 
-import os
-from flask import Flask
-from flask_sqlalchemy import SQLAlchemy
-from flask_login import UserMixin
+from app import create_app, db
+from app.models import Usuario
 from werkzeug.security import generate_password_hash
-from dotenv import load_dotenv
 
-load_dotenv()
+# Cria uma instância da aplicação para ter o contexto do banco de dados
+app = create_app()
 
-app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL')
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
-
-db = SQLAlchemy(app)
-
-# --- MODELOS FINAIS E CORRETOS ---
-# Esta estrutura deve ser idêntica à do app.py
-class Usuario(UserMixin, db.Model):
-    __tablename__ = 'delivery_usuarios'
-    id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(80), unique=True, nullable=False)
-    password_hash = db.Column(db.String(255), nullable=False)
-
-class Pedido(db.Model):
-    __tablename__ = 'delivery_pedidos'
-    id = db.Column(db.Integer, primary_key=True)
-    cliente_id = db.Column(db.Integer, db.ForeignKey('delivery_clientes.id'), nullable=False)
-    nome_cliente = db.Column(db.String(100), nullable=False)
-    cliente = db.relationship('Cliente', backref='pedidos')
-    valor_entrega = db.Column(db.Numeric(10, 2), default=0.0)
-    valor_total = db.Column(db.Numeric(10, 2), nullable=False)
-    data_pedido = db.Column(db.DateTime, default=db.func.now())
-    tipo_pedido = db.Column(db.String(20), nullable=False)
-    itens = db.relationship('ItemPedido', backref='pedido', lazy=True, cascade="all, delete-orphan")
-
-class ItemPedido(db.Model):
-    __tablename__ = 'delivery_itens_pedido'
-    id = db.Column(db.Integer, primary_key=True)
-    produto_id = db.Column(db.Integer, db.ForeignKey('delivery_produtos.id'), nullable=False)
-    produto_descricao = db.Column(db.String(200), nullable=False)
-    quantidade = db.Column(db.Integer, nullable=False)
-    valor_unitario = db.Column(db.Numeric(10, 2), nullable=False)
-    pedido_id = db.Column(db.Integer, db.ForeignKey('delivery_pedidos.id'), nullable=False)
-
-class Cliente(db.Model):
-    __tablename__ = 'delivery_clientes'
-    id = db.Column(db.Integer, primary_key=True)
-    nome = db.Column(db.String(100), nullable=False, unique=True)
-    telefone = db.Column(db.String(20))
-    endereco = db.Column(db.Text)
-    bairro = db.Column(db.String(100))
-
-class Produto(db.Model):
-    __tablename__ = 'delivery_produtos'
-    id = db.Column(db.Integer, primary_key=True)
-    descricao = db.Column(db.String(200), nullable=False, unique=True)
-    valor = db.Column(db.Numeric(10, 2), nullable=False)
-
-
-def criar_tudo():
-    with app.app_context():
-        print("Criando todas as tabelas (versão final alinhada)...")
-        db.create_all()
-        print("Tabelas criadas ou já existentes.")
+# Executa as operações dentro do contexto da aplicação
+with app.app_context():
+    print("Criando todas as tabelas do banco de dados...")
+    db.create_all()
+    print("Tabelas criadas ou já existentes.")
+    
+    # Lógica para criar o usuário admin, se ele não existir
+    if Usuario.query.filter_by(username='admin').first() is None:
+        print("Criando usuário 'admin'...")
         
-        if Usuario.query.filter_by(username='admin').first() is None:
-            print("Criando usuário 'admin'...")
-            hashed_password = generate_password_hash('senha123')
-            novo_usuario = Usuario(username='admin', password_hash=hashed_password)
-            db.session.add(novo_usuario)
-            db.session.commit()
-            print("Usuário 'admin' criado com sucesso!")
-        else:
-            print("Usuário 'admin' já existe.")
-
-if __name__ == '__main__':
-    criar_tudo()
+        novo_usuario = Usuario(username='admin')
+        # A função set_password não existe mais no modelo, usamos a importada
+        hashed_password = generate_password_hash('senha123')
+        novo_usuario.password_hash = hashed_password
+        
+        db.session.add(novo_usuario)
+        db.session.commit()
+        print("Usuário 'admin' criado com sucesso!")
+    else:
+        print("Usuário 'admin' já existe.")

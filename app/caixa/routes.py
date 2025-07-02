@@ -3,9 +3,10 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash
 from flask_login import login_required
 from datetime import date, timedelta
+from decimal import Decimal
 
-# Importa o 'db' e o modelo 'Transacao' do arquivo central de modelos
-from app.models import db, Transacao
+# Importa o 'db' e o modelo 'Transacao' do arquivo central 'models.py'
+from app.models import db, Transacao 
 
 # Criação do Blueprint de Caixa
 caixa_bp = Blueprint(
@@ -13,6 +14,7 @@ caixa_bp = Blueprint(
     __name__, 
     template_folder='templates'
 )
+
 
 # --- ROTAS DA APLICAÇÃO DE CAIXA ---
 
@@ -27,13 +29,13 @@ def index():
     
     saldo = total_entradas - total_saidas
 
-    # Aponta para o template dentro da pasta de templates do blueprint de caixa
     return render_template(
         'caixa/index.html', 
         saldo=saldo, 
         total_entradas=total_entradas, 
         total_saidas=total_saidas,
-        total_fiados=total_fiados
+        total_fiados=total_fiados,
+        today_date=date.today().isoformat() # Adicionado para o formulário no modal
     )
 
 @caixa_bp.route('/extrato')
@@ -83,16 +85,26 @@ def extrato():
 @caixa_bp.route('/add', methods=['POST'])
 @login_required
 def add_transacao():
-    data_str = request.form.get('data_transacao')
-    nova_transacao = Transacao(
-        data_transacao=date.fromisoformat(data_str) if data_str else date.today(),
-        tipo=request.form['tipo'],
-        descricao=request.form['descricao'],
-        valor=float(request.form['valor'])
-    )
-    db.session.add(nova_transacao)
-    db.session.commit()
-    # Redireciona para a nova rota 'index' dentro do blueprint 'caixa'
+    try:
+        data_str = request.form.get('data_transacao')
+        
+        # AQUI ESTÁ A CORREÇÃO
+        valor_str = request.form['valor'].replace(',', '.')
+        valor = Decimal(valor_str)
+
+        nova_transacao = Transacao(
+            data_transacao=date.fromisoformat(data_str) if data_str else date.today(),
+            tipo=request.form['tipo'],
+            descricao=request.form['descricao'],
+            valor=valor
+        )
+        db.session.add(nova_transacao)
+        db.session.commit()
+        flash('Transação adicionada com sucesso!', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f"Erro ao adicionar transação: {e}", 'danger')
+        
     return redirect(url_for('caixa.index'))
 
 @caixa_bp.route('/<int:id>/edit', methods=['GET', 'POST'])
@@ -100,18 +112,33 @@ def add_transacao():
 def edit_transacao(id):
     transacao = Transacao.query.get_or_404(id)
     if request.method == 'POST':
-        transacao.data_transacao = date.fromisoformat(request.form['data_transacao'])
-        transacao.tipo = request.form['tipo']
-        transacao.descricao = request.form['descricao']
-        transacao.valor = float(request.form['valor'])
-        db.session.commit()
-        return redirect(url_for('caixa.extrato'))
+        try:
+            transacao.data_transacao = date.fromisoformat(request.form['data_transacao'])
+            transacao.tipo = request.form['tipo']
+            transacao.descricao = request.form['descricao']
+            
+            valor_str = request.form['valor'].replace(',', '.')
+            transacao.valor = Decimal(valor_str)
+            
+            db.session.commit()
+            flash('Transação atualizada com sucesso!', 'success')
+            return redirect(url_for('caixa.extrato'))
+        except Exception as e:
+            db.session.rollback()
+            flash(f"Erro ao editar transação: {e}", 'danger')
+
     return render_template('caixa/edit.html', transacao=transacao)
 
 @caixa_bp.route('/<int:id>/delete', methods=['POST'])
 @login_required
 def delete_transacao(id):
     transacao = Transacao.query.get_or_404(id)
-    db.session.delete(transacao)
-    db.session.commit()
+    try:
+        db.session.delete(transacao)
+        db.session.commit()
+        flash('Transação excluída com sucesso.', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f"Erro ao excluir transação: {e}", 'danger')
+        
     return redirect(url_for('caixa.extrato'))

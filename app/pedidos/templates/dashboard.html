@@ -5,6 +5,7 @@
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h1 class="h2">Painel de Pedidos</h1>
     <div class="btn-toolbar">
+        <a href="{{ url_for('auth.index') }}" class="btn btn-outline-secondary me-2">Menu Principal</a>
         <div class="btn-group me-2">
             <a href="{{ url_for('pedidos.gerenciar_clientes') }}" class="btn btn-sm btn-outline-secondary">Clientes</a>
             <a href="{{ url_for('pedidos.gerenciar_produtos') }}" class="btn btn-sm btn-outline-secondary">Produtos</a>
@@ -203,7 +204,8 @@ document.addEventListener('DOMContentLoaded', function() {
             row.remove();
             updateTotals();
         });
-        row.querySelector('.item-quantidade').addEventListener('input', updateTotals);
+        // O evento de update é disparado pelo input de quantidade
+        row.addEventListener('update-item', updateTotals);
     }
     
     const deliveryFeeInput = document.querySelector('[name="valor_entrega"]');

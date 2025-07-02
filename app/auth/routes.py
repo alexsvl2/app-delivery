@@ -1,16 +1,18 @@
-# app/auth/routes.py (VERSÃO CORRIGIDA)
+# app/auth/routes.py (CORRIGIDO)
 
-# AQUI ESTÁ A CORREÇÃO: Adicionamos 'request' e 'flash' à linha de importação
 from flask import Blueprint, render_template, redirect, url_for, request, flash
 from flask_login import login_required, current_user, login_user, logout_user
 from app.models import db, Usuario
 
-auth_bp = Blueprint('auth', __name__)
+# O template_folder aponta para a pasta 'templates' dentro de 'auth'
+auth_bp = Blueprint('auth', __name__, template_folder='templates')
 
 
 @auth_bp.route('/')
 @login_required
 def index():
+    # Este template está na pasta principal 'app/templates'
+    # Por isso não precisamos especificar a pasta do blueprint
     return render_template('main_menu.html')
 
 
@@ -27,6 +29,7 @@ def login():
         else:
             flash('Usuário ou senha inválidos.', 'danger')
             
+    # CORREÇÃO: Ele vai procurar por 'login.html' dentro de 'app/auth/templates/'
     return render_template('login.html')
 
 

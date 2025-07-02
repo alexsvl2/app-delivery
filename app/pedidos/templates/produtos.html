@@ -3,7 +3,7 @@
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h1>Gestão de Produtos</h1>
-    <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">Voltar ao Painel</a>
+    <a href="{{ url_for('pedidos.dashboard') }}" class="btn btn-secondary">Voltar ao Painel</a>
 </div>
 
 {% with messages = get_flashed_messages(with_categories=true) %}
@@ -20,10 +20,10 @@
 <div class="card mb-4">
     <div class="card-header">Cadastrar Novo Produto</div>
     <div class="card-body">
-        <form action="{{ url_for('novo_produto') }}" method="POST">
+        <form action="{{ url_for('pedidos.novo_produto') }}" method="POST">
             <div class="row g-3 align-items-end">
                 <div class="col-md-8"><label class="form-label">Descrição do Produto</label><input type="text" name="descricao" class="form-control" required></div>
-                <div class="col-md-4"><label class="form-label">Valor (R$)</label><input type="text" name="valor" class="form-control" required></div>
+                <div class="col-md-4"><label class="form-label">Valor (R$)</label><input type="text" inputmode="decimal" name="valor" class="form-control" required></div>
                 <div class="col-12"><button type="submit" class="btn btn-primary mt-3">Salvar Produto</button></div>
             </div>
         </form>
@@ -42,8 +42,8 @@
                         <td>{{ produto.descricao }}</td>
                         <td>R$ {{ "%.2f"|format(produto.valor)|replace('.', ',') }}</td>
                         <td>
-                            <form action="{{ url_for('excluir_produto', id=produto.id) }}" method="POST" onsubmit="return confirm('Excluir produto?');">
-                                <button type="submit" class="btn btn-sm btn-danger">Excluir</button>
+                            <form action="{{ url_for('pedidos.excluir_produto', id=produto.id) }}" method="POST" onsubmit="return confirm('Excluir produto?');">
+                                <button type="submit" class="btn btn-sm btn-outline-danger">Excluir</button>
                             </form>
                         </td>
                     </tr>

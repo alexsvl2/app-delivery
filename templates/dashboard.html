@@ -2,12 +2,13 @@
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <h1>Painel de Pedidos</h1>
-    <div>
-        <a href="{{ url_for('gerenciar_clientes') }}" class="btn btn-info">Cadastrar Clientes</a>
-        <a href="{{ url_for('gerenciar_produtos') }}" class="btn btn-info">Cadastrar Produtos</a>
-        <a href="{{ url_for('historico') }}" class="btn btn-outline-secondary">Histórico</a>
-        <a href="{{ url_for('logout') }}" class="btn btn-danger">Sair</a>
+    <h1 class="h2">Painel de Pedidos</h1>
+    <div class="btn-toolbar">
+        <div class="btn-group me-2">
+            <a href="{{ url_for('gerenciar_clientes') }}" class="btn btn-sm btn-outline-secondary">Clientes</a>
+            <a href="{{ url_for('gerenciar_produtos') }}" class="btn btn-sm btn-outline-secondary">Produtos</a>
+        </div>
+        <a href="{{ url_for('historico') }}" class="btn btn-sm btn-outline-secondary">Histórico</a>
     </div>
 </div>
 
@@ -28,45 +29,51 @@
     </button>
 </div>
 
-<h3 class="mt-4">Pedidos do Dia</h3>
-<div class="table-responsive">
-    <table class="table table-striped table-hover">
-        <thead class="table-dark">
-            <tr>
-                <th>#ID</th>
-                <th>Cliente / Tipo</th>
-                <th>Itens</th>
-                <th>Total</th>
-                <th>Hora</th>
-                <th>Ações</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for pedido in pedidos %}
-            <tr>
-                <td>{{ pedido.id }}</td>
-                <td>{{ pedido.nome_cliente }} <br><small class="text-muted">{{pedido.tipo_pedido}}</small></td>
-                <td>
-                    <ul class="list-unstyled mb-0 small">
-                        {% for item in pedido.itens %}
-                        <li>{{ item.quantidade }}x {{ item.produto_descricao }}</li>
-                        {% endfor %}
-                    </ul>
-                </td>
-                <td class="fw-bold">R$ {{ "%.2f"|format(pedido.valor_total)|replace('.', ',') }}</td>
-                <td>{{ pedido.data_pedido.strftime('%H:%M') }}</td>
-                <td>
-                    <a href="{{ url_for('imprimir_pedido', pedido_id=pedido.id) }}" class="btn btn-sm btn-secondary" target="_blank" title="Imprimir">🖨️</a>
-                    <form action="{{ url_for('excluir_pedido', pedido_id=pedido.id) }}" method="POST" style="display: inline;" onsubmit="return confirm('Tem certeza que deseja excluir este pedido?');">
-                        <button type="submit" class="btn btn-sm btn-danger" title="Excluir">🗑️</button>
-                    </form>
-                </td>
-            </tr>
-            {% else %}
-            <tr><td colspan="6" class="text-center">Nenhum pedido hoje ainda.</td></tr>
-            {% endfor %}
-        </tbody>
-    </table>
+<div class="card">
+    <div class="card-header">
+        <h5 class="mb-0">Pedidos do Dia</h5>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th scope="col">#ID</th>
+                        <th scope="col">Cliente / Tipo</th>
+                        <th scope="col">Itens</th>
+                        <th scope="col">Total</th>
+                        <th scope="col">Hora</th>
+                        <th scope="col">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for pedido in pedidos %}
+                    <tr>
+                        <td>{{ pedido.id }}</td>
+                        <td>{{ pedido.nome_cliente }} <br><small class="text-muted">{{pedido.tipo_pedido}}</small></td>
+                        <td>
+                            <ul class="list-unstyled mb-0 small">
+                                {% for item in pedido.itens %}
+                                <li>{{ item.quantidade }}x {{ item.produto_descricao }}</li>
+                                {% endfor %}
+                            </ul>
+                        </td>
+                        <td class="fw-bold">R$ {{ "%.2f"|format(pedido.valor_total)|replace('.', ',') }}</td>
+                        <td>{{ pedido.data_pedido.strftime('%H:%M') }}</td>
+                        <td>
+                            <a href="{{ url_for('imprimir_pedido', pedido_id=pedido.id) }}" class="btn btn-sm btn-outline-secondary" target="_blank" title="Imprimir">🖨️</a>
+                            <form action="{{ url_for('excluir_pedido', pedido_id=pedido.id) }}" method="POST" style="display: inline;" onsubmit="return confirm('Tem certeza que deseja excluir este pedido?');">
+                                <button type="submit" class="btn btn-sm btn-outline-danger" title="Excluir">🗑️</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="6" class="text-center text-muted py-4">Nenhum pedido hoje ainda.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
 </div>
 
 <div class="modal fade" id="novoPedidoModal" tabindex="-1" aria-hidden="true">
@@ -88,16 +95,23 @@
                                 {% endfor %}
                             </select>
                         </div>
-                        <div class="col-md-5"><label class="form-label">Tipo</label><select class="form-select" name="tipo_pedido" onchange="toggleDeliveryFieldsModal(this.value)"><option value="Retirada" selected>Retirada no Balcão</option><option value="Delivery">Delivery</option></select></div>
+                        <div class="col-md-5">
+                            <label class="form-label">Tipo</label>
+                            <select class="form-select" name="tipo_pedido" onchange="toggleDeliveryFieldsModal(this.value)">
+                                <option value="Retirada" selected>Retirada no Balcão</option>
+                                <option value="Delivery">Delivery</option>
+                            </select>
+                        </div>
                     </div>
                     <div class="row mb-3" id="delivery-fields-modal" style="display: none;">
                         <div class="col-md-8"><label class="form-label">Endereço</label><input type="text" class="form-control" name="endereco" id="cliente-endereco" readonly></div>
                         <div class="col-md-4"><label class="form-label">Bairro</label><input type="text" class="form-control" name="bairro" id="cliente-bairro" readonly></div>
                     </div>
-                    <hr>
+                    <hr class="my-4">
                     <h5>Itens do Pedido</h5>
-                    <div class="row mb-3">
+                    <div class="row mb-3 align-items-end">
                         <div class="col-md-7">
+                            <label class="form-label">Produto</label>
                             <select id="select-produto" class="form-select">
                                 <option value="" selected disabled>Selecione um produto para adicionar...</option>
                                 {% for produto in produtos %}
@@ -105,13 +119,30 @@
                                 {% endfor %}
                             </select>
                         </div>
-                        <div class="col-md-5"><button type="button" class="btn btn-outline-primary" id="add-item-btn">Adicionar Produto Selecionado</button></div>
+                        <div class="col-md-5">
+                            <button type="button" class="btn btn-outline-primary w-100" id="add-item-btn">Adicionar Produto</button>
+                        </div>
                     </div>
-                    <div id="itens-container" class="mb-3"></div>
-                    <hr>
+                    <div id="itens-container" class="mb-3">
+                        </div>
+                    <hr class="my-4">
                     <div class="row mt-3 align-items-center">
-                        <div class="col-md-6" id="delivery-fee-modal" style="display: none;"><div class="row"><label class="col-sm-5 col-form-label">Taxa de Entrega (R$)</label><div class="col-sm-7"><input type="text" class="form-control" name="valor_entrega" value="0,00" oninput="updateTotals()"></div></div></div>
-                        <div class="col-md-6 ms-auto"><div class="row"><label class="col-sm-5 col-form-label fs-5 fw-bold">TOTAL (R$)</label><div class="col-sm-7"><input type="text" class="form-control fs-5 fw-bold" id="grand-total" readonly></div></div></div>
+                        <div class="col-lg-6" id="delivery-fee-modal" style="display: none;">
+                            <div class="row align-items-center">
+                                <label class="col-sm-5 col-form-label fw-bold">Taxa de Entrega (R$)</label>
+                                <div class="col-sm-7">
+                                    <input type="text" class="form-control" name="valor_entrega" value="0,00" oninput="updateTotals()">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-lg-6 ms-auto">
+                            <div class="row align-items-center">
+                                <label class="col-sm-5 col-form-label fs-5 fw-bold text-end">TOTAL (R$)</label>
+                                <div class="col-sm-7">
+                                    <input type="text" class="form-control fs-5 fw-bold text-end" id="grand-total" value="0,00" readonly>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -127,27 +158,39 @@
     <div class="row g-2 mb-2 align-items-center item-row">
         <input type="hidden" class="item-produto-id" name="produto_id[]">
         <div class="col-md-5"><input type="text" class="form-control item-descricao" readonly></div>
-        <div class="col-md-2"><input type="number" class="form-control item-quantidade" name="item_quantidade[]" value="1" min="1" required></div>
+        <div class="col-md-2"><input type="number" class="form-control item-quantidade" name="item_quantidade[]" value="1" min="1" required oninput="this.closest('.item-row').dispatchEvent(new Event('update-item'));"></div>
         <div class="col-md-2"><input type="text" class="form-control item-valor-unitario" readonly></div>
-        <div class="col-md-2"><input type="text" class="form-control item-total" readonly></div>
-        <div class="col-md-1"><button type="button" class="btn btn-danger btn-sm remove-item-btn">X</button></div>
+        <div class="col-md-2"><input type="text" class="form-control text-end item-total" readonly></div>
+        <div class="col-md-1"><button type="button" class="btn btn-outline-danger btn-sm remove-item-btn">X</button></div>
     </div>
 </template>
+{% endblock %}
 
+{% block scripts %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const addItemBtn = document.getElementById('add-item-btn');
     const selectProduto = document.getElementById('select-produto');
     const itensContainer = document.getElementById('itens-container');
     const template = document.getElementById('item-row-template');
+    const deliveryFeeInput = document.querySelector('[name="valor_entrega"]');
 
-    addItemBtn.addEventListener('click', function() {
-        const selectedOption = selectProduto.options[selectProduto.selectedIndex];
-        if (!selectedOption || !selectedOption.value) {
-            alert('Por favor, selecione um produto.');
-            return;
-        }
+    if (deliveryFeeInput) {
+        deliveryFeeInput.addEventListener('input', updateTotals);
+    }
+    
+    if (addItemBtn) {
+        addItemBtn.addEventListener('click', function() {
+            const selectedOption = selectProduto.options[selectProduto.selectedIndex];
+            if (!selectedOption || !selectedOption.value) {
+                alert('Por favor, selecione um produto.');
+                return;
+            }
+            addNewItemRow(selectedOption);
+        });
+    }
 
+    function addNewItemRow(selectedOption) {
         const clone = template.content.cloneNode(true);
         const newRow = clone.querySelector('.item-row');
         
@@ -160,14 +203,15 @@ document.addEventListener('DOMContentLoaded', function() {
         itensContainer.appendChild(clone);
         attachRowEventListeners(newRow);
         updateTotals();
-    });
+        selectProduto.selectedIndex = 0;
+    }
 
     function attachRowEventListeners(row) {
         row.querySelector('.remove-item-btn').addEventListener('click', function() {
             row.remove();
             updateTotals();
         });
-        row.querySelector('.item-quantidade').addEventListener('input', updateTotals);
+        row.addEventListener('update-item', updateTotals);
     }
 });
 
@@ -184,9 +228,9 @@ function toggleDeliveryFieldsModal(value) {
         deliveryFields.style.display = 'flex';
         deliveryFee.style.display = 'block';
     } else {
+        deliveryFee.querySelector('input').value = '0,00';
         deliveryFields.style.display = 'none';
         deliveryFee.style.display = 'none';
-        deliveryFee.querySelector('input').value = '0,00';
     }
     updateTotals();
 }

@@ -1,0 +1,25 @@
+/* static/style.css */
+
+body {
+    background-color: #f0f2f5; /* Um cinza bem claro para o fundo */
+}
+
+.navbar {
+    box-shadow: 0 2px 4px rgba(0,0,0,.1);
+}
+
+.card {
+    border: none;
+    box-shadow: 0 1px 3px rgba(0,0,0,.12), 0 1px 2px rgba(0,0,0,.24);
+    border-radius: 0.5rem; /* Bordas mais arredondadas */
+}
+
+.btn-primary {
+    background-color: #0d6efd;
+    border-color: #0d6efd;
+}
+
+.table {
+    /* Remove a necessidade de listras, deixando mais clean */
+    --bs-table-striped-bg: transparent; 
+}

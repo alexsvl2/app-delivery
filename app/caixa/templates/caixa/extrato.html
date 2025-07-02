@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h2">Extrato Completo</h1>
+    <a href="{{ url_for('caixa.index') }}" class="btn btn-outline-secondary">Voltar ao Painel</a>
+</div>
+
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="GET" action="{{ url_for('caixa.extrato') }}">
+            <div class="row g-3 align-items-end">
+                <div class="col-md-4">
+                    <label for="periodo" class="form-label">Período</label>
+                    <select name="periodo" class="form-select">
+                        <option value="mes_atual" {% if periodo_selecionado == 'mes_atual' %}selected{% endif %}>Mês Atual</option>
+                        <option value="semana_atual" {% if periodo_selecionado == 'semana_atual' %}selected{% endif %}>Semana Atual</option>
+                        <option value="ultimos_7_dias" {% if periodo_selecionado == 'ultimos_7_dias' %}selected{% endif %}>Últimos 7 Dias</option>
+                        <option value="ultimos_15_dias" {% if periodo_selecionado == 'ultimos_15_dias' %}selected{% endif %}>Últimos 15 Dias</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label for="tipo_filtro" class="form-label">Tipo</label>
+                    <select name="tipo_filtro" class="form-select">
+                        <option value="todos" {% if tipo_selecionado == 'todos' %}selected{% endif %}>Todos</option>
+                        <option value="entrada" {% if tipo_selecionado == 'entrada' %}selected{% endif %}>Entradas</option>
+                        <option value="saida" {% if tipo_selecionado == 'saida' %}selected{% endif %}>Saídas</option>
+                        <option value="fiado" {% if tipo_selecionado == 'fiado' %}selected{% endif %}>Fiados</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <button type="submit" class="btn btn-primary w-100">Filtrar</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">Lançamentos</div>
+    <div class="table-responsive">
+        <table class="table table-striped table-hover mb-0">
+            <thead>
+                <tr>
+                    <th>Data</th>
+                    <th>Descrição</th>
+                    <th>Tipo</th>
+                    <th class="text-end">Valor</th>
+                    <th class="text-end">Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for t in transacoes %}
+                <tr>
+                    <td>{{ t.data_transacao.strftime('%d/%m/%Y') }}</td>
+                    <td>{{ t.descricao }}</td>
+                    <td>
+                        {% if t.tipo == 'entrada' %}<span class="badge bg-success">Entrada</span>
+                        {% elif t.tipo == 'saida' %}<span class="badge bg-danger">Saída</span>
+                        {% else %}<span class="badge bg-warning text-dark">Fiado</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-end fw-bold">R$ {{ "%.2f"|format(t.valor)|replace('.',',') }}</td>
+                    <td class="text-end">
+                        <a href="{{ url_for('caixa.edit_transacao', id=t.id) }}" class="btn btn-sm btn-outline-warning">Editar</a>
+                        <form action="{{ url_for('caixa.delete_transacao', id=t.id) }}" method="POST" style="display: inline;" onsubmit="return confirm('Tem certeza?');">
+                            <button type="submit" class="btn btn-sm btn-outline-danger">Excluir</button>
+                        </form>
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="5" class="text-center text-muted py-4">Nenhum lançamento encontrado para este período.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1 class="h2 mb-4">Editar Transação #{{ transacao.id }}</h1>
+
+<div class="card">
+    <div class="card-body">
+        <form action="{{ url_for('caixa.edit_transacao', id=transacao.id) }}" method="POST">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label">Data</label>
+                    <input type="date" class="form-control" name="data_transacao" value="{{ transacao.data_transacao.isoformat() }}" required>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Valor (R$)</label>
+                    <input type="text" inputmode="decimal" class="form-control" name="valor" value="{{ '%.2f'|format(transacao.valor)|replace('.',',') }}" required>
+                </div>
+                <div class="col-12">
+                    <label class="form-label">Descrição</label>
+                    <input type="text" class="form-control" name="descricao" value="{{ transacao.descricao }}" required>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Tipo</label>
+                    <select class="form-select" name="tipo" required>
+                        <option value="entrada" {% if transacao.tipo == 'entrada' %}selected{% endif %}>Entrada</option>
+                        <option value="saida" {% if transacao.tipo == 'saida' %}selected{% endif %}>Saída</option>
+                        <option value="fiado" {% if transacao.tipo == 'fiado' %}selected{% endif %}>Fiado</option>
+                    </select>
+                </div>
+                <div class="col-12 d-flex justify-content-end">
+                    <a href="{{ url_for('caixa.extrato') }}" class="btn btn-secondary me-2">Cancelar</a>
+                    <button type="submit" class="btn btn-success">Salvar Alterações</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

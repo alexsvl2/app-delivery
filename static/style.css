@@ -23,3 +23,37 @@ body {
     /* Remove a necessidade de listras, deixando mais clean */
     --bs-table-striped-bg: transparent; 
 }
+
+/* app/static/style.css */
+
+/* Estilos para os botões do novo menu de pedidos */
+.menu-button {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 150px; /* Altura dos botões */
+    border-radius: 0.75rem;
+    text-decoration: none;
+    color: white;
+    font-size: 1.2rem;
+    font-weight: bold;
+    transition: transform 0.2s;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.menu-button:hover {
+    color: white;
+    transform: translateY(-5px); /* Efeito de levantar ao passar o mouse */
+}
+
+.menu-button .icon {
+    font-size: 3rem; /* Tamanho do ícone */
+    margin-bottom: 0.5rem;
+}
+
+/* Cores específicas para cada botão */
+.btn-delivery { background-color: #d9534f; } /* Vermelho */
+.btn-balcao { background-color: #5bc0de; } /* Azul claro */
+.btn-mesas { background-color: #f0ad4e; }  /* Laranja */
+.btn-cardapio { background-color: #5cb85c; } /* Verde */

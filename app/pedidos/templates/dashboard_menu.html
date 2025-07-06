@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h2">Painel de Pedidos</h1>
+    <a href="{{ url_for('auth.index') }}" class="btn btn-outline-secondary">Menu Principal</a>
+</div>
+
+<div class="row g-4">
+    <div class="col-6 col-md-3">
+        <a href="{{ url_for('pedidos.venda_delivery') }}" class="menu-button btn-delivery">
+            <i class="bi bi-bicycle icon"></i>
+            <span>Delivery</span>
+        </a>
+    </div>
+    <div class="col-6 col-md-3">
+        <a href="{{ url_for('pedidos.venda_balcao') }}" class="menu-button btn-balcao">
+            <i class="bi bi-shop-window icon"></i>
+            <span>Venda Balcão</span>
+        </a>
+    </div>
+    <div class="col-6 col-md-3">
+        <a href="{{ url_for('pedidos.gerenciar_mesas') }}" class="menu-button btn-mesas">
+            <i class="bi bi-grid-3x3-gap icon"></i>
+            <span>Mesas</span>
+        </a>
+    </div>
+    <div class="col-6 col-md-3">
+        <a href="{{ url_for('pedidos.gerenciar_produtos') }}" class="menu-button btn-cardapio">
+            <i class="bi bi-book icon"></i>
+            <span>Cardápio</span>
+        </a>
+    </div>
+</div>
+{% endblock %}

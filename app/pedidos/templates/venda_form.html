@@ -2,14 +2,95 @@
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <h1 class="h2">Editando Pedido #{{ pedido.id }}</h1>
-    <a href="{{ url_for('pedidos.dashboard') }}" class="btn btn-outline-secondary">Cancelar Edição</a>
+    <h1 class="h2">Nova Venda: {{ tipo_venda }}</h1>
+    <a href="{{ url_for('pedidos.dashboard') }}" class="btn btn-outline-secondary">Voltar ao Menu</a>
 </div>
 
-<div class="card">
-    <div class="card-body p-4">
-        <form id="form-editar-pedido" action="{{ url_for('pedidos.editar_pedido', pedido_id=pedido.id) }}" method="POST">
-            </form>
+{% with messages = get_flashed_messages(with_categories=true) %}
+    {% for category, message in messages %}
+        <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    {% endfor %}
+{% endwith %}
+
+<div class="row g-4">
+    <div class="col-lg-7">
+        <div class="card">
+            <div class="card-header"><h5 class="mb-0">Registrar Novo Pedido</h5></div>
+            <div class="card-body p-4">
+                <form id="form-novo-pedido" action="{{ url_for('pedidos.novo_pedido') }}" method="POST">
+                    <input type="hidden" name="tipo_pedido" value="{{ tipo_venda }}">
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Cliente</label>
+                        <select class="form-select" name="cliente_id" required>
+                            <option value="" selected disabled>Selecione um cliente...</option>
+                            {% for cliente in clientes %}
+                            <option value="{{ cliente.id }}">{{ cliente.nome }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <hr class="my-4">
+                    
+                    <h5>Itens do Pedido</h5>
+                    <div class="row mb-3 align-items-end">
+                        <div class="col-md-7">
+                            <label class="form-label">Produto</label>
+                            <select id="select-produto" class="form-select">
+                                <option value="" selected disabled>Selecione um produto para adicionar...</option>
+                                {% for produto in produtos %}
+                                <option value="{{ produto.id }}" data-valor="{{ produto.valor }}">{{ produto.descricao }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-5">
+                            <button type="button" class="btn btn-outline-primary w-100" id="add-item-btn">Adicionar Produto</button>
+                        </div>
+                    </div>
+                    <div id="itens-container" class="mb-3"></div>
+                    
+                    <hr class="my-4">
+                    
+                    <div class="row mt-3 align-items-center">
+                        <div class="col-lg-6" id="delivery-fee-form" {% if tipo_venda != 'Delivery' %}style="display: none;"{% endif %}>
+                            <div class="row align-items-center">
+                                <label class="col-sm-5 col-form-label fw-bold">Taxa de Entrega (R$)</label>
+                                <div class="col-sm-7">
+                                    <input type="text" class="form-control" name="valor_entrega" value="0,00" oninput="updateTotals()">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-lg-6 ms-auto">
+                            <div class="row align-items-center">
+                                <label class="col-sm-5 col-form-label fs-5 fw-bold text-end">TOTAL (R$)</label>
+                                <div class="col-sm-7">
+                                    <input type="text" class="form-control fs-5 fw-bold text-end" id="grand-total" value="0,00" readonly>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="d-grid mt-4">
+                        <button type="submit" class="btn btn-success btn-lg">Finalizar e Salvar Pedido</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-5">
+        <div class="card">
+            <div class="card-header"><h5 class="mb-0">Pedidos do Dia ({{ tipo_venda }})</h5></div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        </table>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -19,6 +100,6 @@
 
 {% block scripts %}
 <script>
-    // Javascript para adicionar/remover itens e calcular totais, igual ao da página de venda
+    // ...
 </script>
 {% endblock %}

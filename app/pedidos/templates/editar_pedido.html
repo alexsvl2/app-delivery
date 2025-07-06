@@ -1,127 +1,24 @@
 {% extends "base.html" %}
 
 {% block content %}
-<h1 class="mb-4">Editando Pedido #{{ pedido.id }}</h1>
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h2">Editando Pedido #{{ pedido.id }}</h1>
+    <a href="{{ url_for('pedidos.dashboard') }}" class="btn btn-outline-secondary">Cancelar Edição</a>
+</div>
 
 <div class="card">
-    <div class="card-body">
-        <form id="form-editar-pedido" method="POST" action="{{ url_for('editar_pedido', pedido_id=pedido.id) }}">
-            <div class="row mb-3">
-                <div class="col-md-7"><label class="form-label">Nome do Cliente</label><input type="text" class="form-control" name="nome_cliente" value="{{ pedido.nome_cliente }}" required></div>
-                <div class="col-md-5"><label class="form-label">Tipo</label><select class="form-select" name="tipo_pedido" onchange="toggleDeliveryFields(this.value)"><option value="Retirada" {% if pedido.tipo_pedido == 'Retirada' %}selected{% endif %}>Retirada no Balcão</option><option value="Delivery" {% if pedido.tipo_pedido == 'Delivery' %}selected{% endif %}>Delivery</option></select></div>
-            </div>
-            <div class="row mb-3" id="delivery-fields"><div class="col-md-8"><label class="form-label">Endereço</label><input type="text" class="form-control" name="endereco" value="{{ pedido.endereco or '' }}"></div><div class="col-md-4"><label class="form-label">Bairro</label><input type="text" class="form-control" name="bairro" value="{{ pedido.bairro or '' }}"></div></div>
-            <hr>
-            <h5>Itens do Pedido</h5>
-            <div id="itens-container">
-                {% for item in pedido.itens %}
-                <div class="row g-2 mb-2 align-items-center item-row">
-                    <div class="col-md-5"><input type="text" class="form-control item-descricao" name="item_descricao[]" placeholder="Descrição do Item" value="{{ item.descricao }}" required></div>
-                    <div class="col-md-2"><input type="number" class="form-control item-quantidade" name="item_quantidade[]" value="{{ item.quantidade }}" min="1" placeholder="Qtd" required></div>
-                    <div class="col-md-2"><input type="text" class="form-control item-valor-unitario" name="item_valor_unitario[]" placeholder="Valor Unit." value="{{ '%.2f'|format(item.valor_unitario)|replace('.',',') }}" required></div>
-                    <div class="col-md-2"><input type="text" class="form-control item-total" readonly></div>
-                    <div class="col-md-1"><button type="button" class="btn btn-danger btn-sm remove-item-btn">X</button></div>
-                </div>
-                {% endfor %}
-            </div>
-            <button type="button" class="btn btn-outline-primary btn-sm mt-2" id="add-item-btn">Adicionar Item</button>
-            <hr>
-            <div class="row mt-3 align-items-center">
-                <div class="col-md-6" id="delivery-fee-field"><div class="row"><label class="col-sm-5 col-form-label">Taxa de Entrega (R$)</label><div class="col-sm-7"><input type="text" class="form-control" name="valor_entrega" value="{{ '%.2f'|format(pedido.valor_entrega or 0)|replace('.',',') }}"></div></div></div>
-                <div class="col-md-6 ms-auto"><div class="row"><label class="col-sm-5 col-form-label fs-5 fw-bold">TOTAL (R$)</label><div class="col-sm-7"><input type="text" class="form-control fs-5 fw-bold" id="grand-total" readonly></div></div></div>
-            </div>
-            <div class="mt-4 d-flex justify-content-end">
-                <a href="{{ url_for('dashboard') }}" class="btn btn-secondary me-2">Cancelar</a>
-                <button type="submit" class="btn btn-success">Salvar Alterações</button>
-            </div>
-        </form>
+    <div class="card-body p-4">
+        <form id="form-editar-pedido" action="{{ url_for('pedidos.editar_pedido', pedido_id=pedido.id) }}" method="POST">
+            </form>
     </div>
 </div>
 
 <template id="item-row-template">
-    <div class="row g-2 mb-2 align-items-center item-row">
-        <div class="col-md-5"><input type="text" class="form-control item-descricao" name="item_descricao[]" placeholder="Descrição do Item" required></div>
-        <div class="col-md-2"><input type="number" class="form-control item-quantidade" name="item_quantidade[]" value="1" min="1" placeholder="Qtd" required></div>
-        <div class="col-md-2"><input type="text" class="form-control item-valor-unitario" name="item_valor_unitario[]" placeholder="Valor Unit." required></div>
-        <div class="col-md-2"><input type="text" class="form-control item-total" readonly></div>
-        <div class="col-md-1"><button type="button" class="btn btn-danger btn-sm remove-item-btn">X</button></div>
-    </div>
-</template>
+    </template>
+{% endblock %}
 
+{% block scripts %}
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    const addItemBtn = document.getElementById('add-item-btn');
-    const itensContainer = document.getElementById('itens-container');
-    const template = document.getElementById('item-row-template');
-    const deliveryFeeInput = document.querySelector('[name="valor_entrega"]');
-
-    function addNewItemRow() {
-        const clone = template.content.cloneNode(true);
-        itensContainer.appendChild(clone);
-        attachRowEventListeners(itensContainer.lastElementChild);
-    }
-
-    addItemBtn.addEventListener('click', addNewItemRow);
-    deliveryFeeInput.addEventListener('input', updateTotals);
-    deliveryFeeInput.addEventListener('blur', (e) => formatCurrencyInput(e.target));
-
-    function attachRowEventListeners(row) {
-        row.querySelector('.remove-item-btn').addEventListener('click', function() {
-            row.remove();
-            updateTotals();
-        });
-        
-        const inputsToUpdate = row.querySelectorAll('.item-quantidade, .item-valor-unitario');
-        inputsToUpdate.forEach(input => input.addEventListener('input', updateTotals));
-
-        const valorUnitarioInput = row.querySelector('.item-valor-unitario');
-        valorUnitarioInput.addEventListener('blur', (e) => formatCurrencyInput(e.target));
-    }
-
-    // Adiciona os eventos para as linhas já existentes
-    document.querySelectorAll('#itens-container .item-row').forEach(row => {
-        attachRowEventListeners(row);
-    });
-
-    // Chama as funções para garantir o estado inicial correto do formulário
-    toggleDeliveryFields(document.querySelector('[name=tipo_pedido]').value);
-    updateTotals();
-});
-
-function toggleDeliveryFields(value) {
-    const deliveryFields = document.getElementById('delivery-fields');
-    const deliveryFeeField = document.getElementById('delivery-fee-field');
-    if (value === 'Delivery') {
-        deliveryFields.style.display = 'flex';
-        deliveryFeeField.style.display = 'block';
-    } else {
-        deliveryFields.style.display = 'none';
-        deliveryFeeField.style.display = 'none';
-        deliveryFeeField.querySelector('input').value = '0,00';
-    }
-    updateTotals();
-}
-
-function updateTotals() {
-    let grandTotal = 0;
-    document.querySelectorAll('#itens-container .item-row').forEach(row => {
-        const qty = parseFloat(row.querySelector('.item-quantidade').value) || 0;
-        const price = parseFloat(row.querySelector('.item-valor-unitario').value.replace(',', '.')) || 0;
-        const itemTotal = qty * price;
-        row.querySelector('.item-total').value = itemTotal.toFixed(2).replace('.', ',');
-        grandTotal += itemTotal;
-    });
-
-    const deliveryFee = parseFloat(document.querySelector('[name="valor_entrega"]').value.replace(',', '.')) || 0;
-    grandTotal += deliveryFee;
-
-    document.getElementById('grand-total').value = grandTotal.toFixed(2).replace('.', ',');
-}
-
-function formatCurrencyInput(inputElement) {
-    let value = inputElement.value.replace(',', '.').replace(/[^\d.]/g, '');
-    let numberValue = parseFloat(value) || 0;
-    inputElement.value = numberValue.toFixed(2).replace('.', ',');
-}
+    // ...
 </script>
 {% endblock %}

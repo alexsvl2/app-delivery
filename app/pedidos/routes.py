@@ -1,4 +1,4 @@
-# app/pedidos/routes.py (VERSÃO FINAL COM NOVO MENU)
+# app/pedidos/routes.py (VERSÃO FINAL CORRIGIDA)
 
 from flask import Blueprint, render_template, request, redirect, url_for, flash
 from flask_login import login_required
@@ -7,16 +7,14 @@ from datetime import date
 from sqlalchemy import cast, Date
 from decimal import Decimal
 
-# Criação do Blueprint de Pedidos
 pedidos_bp = Blueprint('pedidos', __name__, template_folder='templates')
 
-# ROTA PRINCIPAL DO BLUEPRINT DE PEDIDOS - AGORA MOSTRA O MENU DE ÍCONES
 @pedidos_bp.route('/dashboard')
 @login_required
 def dashboard():
-    return render_template('pedidos/dashboard_menu.html')
+    # CORREÇÃO AQUI: Removido o 'pedidos/' do caminho do template
+    return render_template('dashboard_menu.html')
 
-# NOVA ROTA PARA A PÁGINA DE VENDAS DELIVERY
 @pedidos_bp.route('/venda/delivery')
 @login_required
 def venda_delivery():
@@ -24,9 +22,8 @@ def venda_delivery():
     pedidos_do_dia = Pedido.query.filter(cast(Pedido.data_pedido, Date) == hoje, Pedido.tipo_pedido == 'Delivery').order_by(Pedido.data_pedido.desc()).all()
     clientes = Cliente.query.order_by(Cliente.nome).all()
     produtos = Produto.query.order_by(Produto.descricao).all()
-    return render_template('pedidos/venda_form.html', tipo_venda='Delivery', pedidos_do_dia=pedidos_do_dia, clientes=clientes, produtos=produtos)
+    return render_template('venda_form.html', tipo_venda='Delivery', pedidos_do_dia=pedidos_do_dia, clientes=clientes, produtos=produtos)
 
-# NOVA ROTA PARA A PÁGINA DE VENDAS NO BALCÃO
 @pedidos_bp.route('/venda/balcao')
 @login_required
 def venda_balcao():
@@ -34,15 +31,13 @@ def venda_balcao():
     pedidos_do_dia = Pedido.query.filter(cast(Pedido.data_pedido, Date) == hoje, Pedido.tipo_pedido == 'Retirada').order_by(Pedido.data_pedido.desc()).all()
     clientes = Cliente.query.order_by(Cliente.nome).all()
     produtos = Produto.query.order_by(Produto.descricao).all()
-    return render_template('pedidos/venda_form.html', tipo_venda='Retirada', pedidos_do_dia=pedidos_do_dia, clientes=clientes, produtos=produtos)
+    return render_template('venda_form.html', tipo_venda='Retirada', pedidos_do_dia=pedidos_do_dia, clientes=clientes, produtos=produtos)
 
-# NOVA ROTA PARA A PÁGINA DE MESAS (EXEMPLO)
 @pedidos_bp.route('/mesas')
 @login_required
 def gerenciar_mesas():
-    return render_template('pedidos/mesas.html')
+    return render_template('mesas.html')
 
-# ROTA PARA SALVAR O PEDIDO
 @pedidos_bp.route('/novo', methods=['POST'])
 @login_required
 def novo_pedido():
@@ -99,7 +94,6 @@ def novo_pedido():
         db.session.rollback()
         flash(f'Erro ao cadastrar pedido: {e}', 'danger')
     
-    # Redireciona de volta para a página de origem da venda
     if tipo_pedido == 'Delivery':
         return redirect(url_for('pedidos.venda_delivery'))
     else:
@@ -122,19 +116,19 @@ def imprimir_pedido(pedido_id):
     pedido = db.session.get(Pedido, pedido_id)
     if not pedido:
         return "Pedido não encontrado", 404
-    return render_template('pedidos/imprimir_pedido.html', pedido=pedido)
+    return render_template('imprimir_pedido.html', pedido=pedido)
 
 @pedidos_bp.route('/historico')
 @login_required
 def historico():
     pedidos = Pedido.query.order_by(Pedido.data_pedido.desc()).all()
-    return render_template('pedidos/historico.html', pedidos=pedidos)
+    return render_template('historico.html', pedidos=pedidos)
 
 @pedidos_bp.route('/clientes')
 @login_required
 def gerenciar_clientes():
     clientes = Cliente.query.order_by(Cliente.nome).all()
-    return render_template('pedidos/clientes.html', clientes=clientes)
+    return render_template('clientes.html', clientes=clientes)
 
 @pedidos_bp.route('/clientes/novo', methods=['POST'])
 @login_required
@@ -165,7 +159,7 @@ def excluir_cliente(id):
 @login_required
 def gerenciar_produtos():
     produtos = Produto.query.order_by(Produto.descricao).all()
-    return render_template('pedidos/produtos.html', produtos=produtos)
+    return render_template('produtos.html', produtos=produtos)
 
 @pedidos_bp.route('/produtos/novo', methods=['POST'])
 @login_required
@@ -185,7 +179,6 @@ def novo_produto():
 @login_required
 def excluir_produto(id):
     produto = db.session.get(Produto, id)
-    # seria ideal verificar se o produto está em algum pedido antes de excluir
     if produto:
         db.session.delete(produto)
         db.session.commit()

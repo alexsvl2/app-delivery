@@ -2,194 +2,23 @@
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <h1 class="h2">Nova Venda: {{ tipo_venda }}</h1>
-    <a href="{{ url_for('pedidos.dashboard') }}" class="btn btn-outline-secondary">Voltar ao Menu</a>
+    <h1 class="h2">Editando Pedido #{{ pedido.id }}</h1>
+    <a href="{{ url_for('pedidos.dashboard') }}" class="btn btn-outline-secondary">Cancelar Edição</a>
 </div>
 
-{% with messages = get_flashed_messages(with_categories=true) %}
-    {% if messages %}
-        {% for category, message in messages %}
-            <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
-                {{ message }}
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            </div>
-        {% endfor %}
-    {% endif %}
-{% endwith %}
-
-<div class="row g-4">
-    <div class="col-lg-7">
-        <div class="card">
-            <div class="card-header"><h5 class="mb-0">Registrar Novo Pedido</h5></div>
-            <div class="card-body p-4">
-                <form id="form-novo-pedido" action="{{ url_for('pedidos.novo_pedido') }}" method="POST">
-                    <input type="hidden" name="tipo_pedido" value="{{ tipo_venda }}">
-
-                    <div class="mb-3">
-                        <label class="form-label fw-bold">Cliente</label>
-                        <select class="form-select" name="cliente_id" id="select-cliente" required>
-                            <option value="" selected disabled>Selecione um cliente...</option>
-                            {% for cliente in clientes %}
-                            <option value="{{ cliente.id }}">{{ cliente.nome }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    
-                    <hr class="my-4">
-                    
-                    <h5>Itens do Pedido</h5>
-                    <div class="row mb-3 align-items-end">
-                        <div class="col-md-7">
-                            <label class="form-label">Produto</label>
-                            <select id="select-produto" class="form-select">
-                                <option value="" selected disabled>Selecione um produto para adicionar...</option>
-                                {% for produto in produtos %}
-                                <option value="{{ produto.id }}" data-valor="{{ produto.valor }}">{{ produto.descricao }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                        <div class="col-md-5">
-                            <button type="button" class="btn btn-outline-primary w-100" id="add-item-btn">Adicionar Produto</button>
-                        </div>
-                    </div>
-                    <div id="itens-container" class="mb-3">
-                        </div>
-                    
-                    <hr class="my-4">
-                    
-                    <div class="row mt-3 align-items-center">
-                        <div class="col-lg-6" id="delivery-fee-form" {% if tipo_venda != 'Delivery' %}style="display: none;"{% endif %}>
-                            <div class="row align-items-center">
-                                <label class="col-sm-5 col-form-label fw-bold">Taxa de Entrega (R$)</label>
-                                <div class="col-sm-7">
-                                    <input type="text" class="form-control" name="valor_entrega" value="0,00" oninput="updateTotals()">
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-lg-6 ms-auto">
-                            <div class="row align-items-center">
-                                <label class="col-sm-5 col-form-label fs-5 fw-bold text-end">TOTAL (R$)</label>
-                                <div class="col-sm-7">
-                                    <input type="text" class="form-control fs-5 fw-bold text-end" id="grand-total" value="0,00" readonly>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="d-grid mt-4">
-                        <button type="submit" class="btn btn-success btn-lg">Finalizar e Salvar Pedido</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-
-    <div class="col-lg-5">
-        <div class="card">
-            <div class="card-header"><h5 class="mb-0">Pedidos do Dia ({{ tipo_venda }})</h5></div>
-            <div class="card-body">
-                <div class="table-responsive">
-                    <table class="table table-hover">
-                        <thead>
-                            <tr>
-                                <th>#ID</th>
-                                <th>Cliente</th>
-                                <th class="text-end">Total</th>
-                                <th class="text-center">Ações</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for pedido in pedidos_do_dia %}
-                            <tr>
-                                <td>{{ pedido.id }}</td>
-                                <td>{{ pedido.nome_cliente }}</td>
-                                <td class="text-end fw-bold">R$ {{ "%.2f"|format(pedido.valor_total)|replace('.', ',') }}</td>
-                                <td class="text-center">
-                                    <a href="{{ url_for('pedidos.imprimir_pedido', pedido_id=pedido.id) }}" class="btn btn-sm btn-outline-secondary" target="_blank" title="Imprimir">🖨️</a>
-                                </td>
-                            </tr>
-                            {% else %}
-                            <tr><td colspan="4" class="text-center text-muted py-4">Nenhum pedido deste tipo hoje.</td></tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
+<div class="card">
+    <div class="card-body p-4">
+        <form id="form-editar-pedido" action="{{ url_for('pedidos.editar_pedido', pedido_id=pedido.id) }}" method="POST">
+            </form>
     </div>
 </div>
 
 <template id="item-row-template">
-    <div class="row g-2 mb-2 align-items-center item-row">
-        <input type="hidden" class="item-produto-id" name="produto_id[]">
-        <div class="col-md-5"><input type="text" class="form-control item-descricao" readonly></div>
-        <div class="col-md-2"><input type="number" class="form-control item-quantidade" name="item_quantidade[]" value="1" min="1" required oninput="this.closest('.item-row').dispatchEvent(new Event('update-item'));"></div>
-        <div class="col-md-2"><input type="text" class="form-control item-valor-unitario" readonly></div>
-        <div class="col-md-2"><input type="text" class="form-control text-end item-total" readonly></div>
-        <div class="col-md-1"><button type="button" class="btn btn-outline-danger btn-sm remove-item-btn">X</button></div>
-    </div>
-</template>
+    </template>
 {% endblock %}
 
 {% block scripts %}
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    const addItemBtn = document.getElementById('add-item-btn');
-    const selectProduto = document.getElementById('select-produto');
-    const itensContainer = document.getElementById('itens-container');
-    const template = document.getElementById('item-row-template');
-
-    if(addItemBtn) {
-        addItemBtn.addEventListener('click', function() {
-            const selectedOption = selectProduto.options[selectProduto.selectedIndex];
-            if (!selectedOption || !selectedOption.value) {
-                alert('Por favor, selecione um produto.');
-                return;
-            }
-            addNewItemRow(selectedOption);
-        });
-    }
-
-    function addNewItemRow(selectedOption) {
-        const clone = template.content.cloneNode(true);
-        const newRow = clone.querySelector('.item-row');
-        
-        newRow.querySelector('.item-produto-id').value = selectedOption.value;
-        newRow.querySelector('.item-descricao').value = selectedOption.text;
-        
-        const valor = parseFloat(selectedOption.dataset.valor);
-        newRow.querySelector('.item-valor-unitario').value = valor.toFixed(2).replace('.', ',');
-
-        itensContainer.appendChild(clone);
-        attachRowEventListeners(newRow);
-        updateTotals();
-        selectProduto.selectedIndex = 0;
-    }
-
-    function attachRowEventListeners(row) {
-        row.querySelector('.remove-item-btn').addEventListener('click', function() {
-            row.remove();
-            updateTotals();
-        });
-        row.querySelector('.item-quantidade').addEventListener('input', updateTotals);
-    }
-});
-
-function updateTotals() {
-    let grandTotal = 0;
-    document.querySelectorAll('#itens-container .item-row').forEach(row => {
-        const qty = parseFloat(row.querySelector('.item-quantidade').value) || 0;
-        const price = parseFloat(row.querySelector('.item-valor-unitario').value.replace(',', '.')) || 0;
-        const itemTotal = qty * price;
-        row.querySelector('.item-total').value = itemTotal.toFixed(2).replace('.', ',');
-        grandTotal += itemTotal;
-    });
-
-    const deliveryFeeInput = document.querySelector('[name="valor_entrega"]');
-    const deliveryFee = parseFloat(deliveryFeeInput.value.replace(',', '.')) || 0;
-    grandTotal += deliveryFee;
-
-    document.getElementById('grand-total').value = grandTotal.toFixed(2).replace('.', ',');
-}
+    // Javascript para adicionar/remover itens e calcular totais, igual ao da página de venda
 </script>
 {% endblock %}
